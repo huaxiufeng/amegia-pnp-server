@@ -4,7 +4,6 @@
 
 #include "message_types.h"
 #include "global_config.h"
-#include "global_config.h"
 #include "global_net_func.h"
 #include "gloghelper.h"
 #include "rtsp_manager.h"

@@ -2,7 +2,7 @@
 #include "global_config.h"
 #include "gloghelper.h"
 #include "account_server_callback.h"
-#include "control_server_callback.h"
+#include "control_manager.h"
 #include "rtsp_manager.h"
 #include "message_server_controller.h"
 
