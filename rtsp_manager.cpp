@@ -145,8 +145,9 @@ void rtsp_read_cb(struct bufferevent *bev, void *arg)
 
   context->m_buffer_queue->push(recv_buffer, recv_len);
   const char *data = context->m_buffer_queue->top();
-  int capacity = context->m_buffer_queue->capacity();
   IoctlMsg *recv_message = (IoctlMsg*)data;
+
+LOG(INFO)<<"get "<<recv_len<<" bytes"<<endl;
 
   switch (recv_message->ioctlCmd) {
   case IOCTL_RTSP_READY:
