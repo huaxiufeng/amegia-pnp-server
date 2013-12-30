@@ -11,3 +11,10 @@
 *.lai
 *.la
 *.a
+
+# Project files
+*.layout
+
+# Binary file
+amegia_pnp_server
+core

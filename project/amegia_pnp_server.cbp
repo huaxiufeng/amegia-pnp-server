@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="amegia_pnp_server" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/amegia_pnp_server" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/amegia_pnp_server" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add option="-fexceptions" />
+		</Compiler>
+		<Unit filename="../account_manager.cpp" />
+		<Unit filename="../account_manager.h" />
+		<Unit filename="../account_server_callback.cpp" />
+		<Unit filename="../account_server_callback.h" />
+		<Unit filename="../control_manager.cpp" />
+		<Unit filename="../control_manager.h" />
+		<Unit filename="../control_server_callback.cpp" />
+		<Unit filename="../control_server_callback.h" />
+		<Unit filename="../general_manager.cpp" />
+		<Unit filename="../general_manager.h" />
+		<Unit filename="../global_config.cpp" />
+		<Unit filename="../global_config.h" />
+		<Unit filename="../global_net_func.cpp" />
+		<Unit filename="../global_net_func.h" />
+		<Unit filename="../gloghelper.cpp" />
+		<Unit filename="../gloghelper.h" />
+		<Unit filename="../main.cpp" />
+		<Unit filename="../message_server_controller.cpp" />
+		<Unit filename="../message_server_controller.h" />
+		<Unit filename="../message_types.h" />
+		<Unit filename="../rtsp_manager.cpp" />
+		<Unit filename="../rtsp_manager.h" />
+		<Unit filename="../rtsp_net_func.cpp" />
+		<Unit filename="../rtsp_net_func.h" />
+		<Extensions>
+			<code_completion />
+			<envvars />
+			<debugger />
+			<lib_finder disable_auto="1" />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
