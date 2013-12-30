@@ -14,73 +14,67 @@ using namespace std;
 static void handle_connect_rtsp_command(struct bufferevent *bev)
 {
   evutil_socket_t fd = bufferevent_getfd(bev);
-  general_context *context = NULL;
-  string ip;
-  uint32_t port = 0;
-  if (context = rtsp_manager::get_instance()->get(fd)) {
-    ip = context->m_conn_ip;
-    port = context->m_conn_port;
-  }
-  int rtsp_cseq = 1;
-  char resp_buffer[MAX_BUFF_SIZE];
-  // step 1: options
-  rtsp_write(fd, "OPTIONS", "rtsp://10.101.10.189/v05", NULL, rtsp_cseq++);
-  rtsp_read(fd, resp_buffer, MAX_BUFF_SIZE);
-  // step 2: describe
-  char content_length[128], range[128];
-  rtsp_write(fd, "DESCRIBE", "rtsp://10.101.10.189/v05", "Accept: application/sdp\r\n", rtsp_cseq++);
-  rtsp_read(fd, resp_buffer, MAX_BUFF_SIZE);
-  if (find_value((char*)"Content-Length:", resp_buffer, content_length)) {
-    rtsp_read(fd, resp_buffer, MAX_BUFF_SIZE);
-  }
-  find_value("range:", resp_buffer, range);
-  // step 3: parsing track information
-  int video_track_id = -1, audio_track_id = -2;
-  char video_track[512], audio_track[512];
-  memset(video_track, 0, sizeof(video_track));
-  memset(audio_track, 0, sizeof(audio_track));
-  const char *pointer = NULL;
-  pointer = strstr(resp_buffer, "m=video");
-  if (pointer) {
-    pointer = strstr(pointer, "a=control:");
+  general_context *context = rtsp_manager::get_instance()->get(fd);
+  if (!context) return;
+  string ip = context->m_conn_ip;
+  uint32_t port = context->m_conn_port;
+
+  const char *data = context->m_buffer_queue->top();
+  int current_size = context->m_buffer_queue->size();
+  int header_size = sizeof(IoctlMsg) +sizeof(IoctlMsgNormal);
+  int rtsp_cseq = 0;
+  for (int i = current_size-1; i >= 0; i--) {
+    const char *pointer = strstr(data+i, "CSeq: ");
     if (pointer) {
-      sscanf(pointer, "a=control:%s", video_track);
+      sscanf(pointer, "CSeq: %d", &rtsp_cseq);
+      break;
     }
   }
-  pointer = strstr(resp_buffer, "m=audio");
-  if (pointer) {
-    pointer = strstr(pointer, "a=control:");
-    if (pointer) {
-      sscanf(pointer, "a=control:%s", audio_track);
+
+  if (0 == rtsp_cseq) {
+    rtsp_write(fd, "OPTIONS", "rtsp://10.101.10.189/v05", NULL, rtsp_cseq+1);
+  }
+  if (1 == rtsp_cseq) {
+    rtsp_write(fd, "DESCRIBE", "rtsp://10.101.10.189/v05", "Accept: application/sdp\r\n", rtsp_cseq+1);
+  }
+  if (2 == rtsp_cseq && strstr(data+header_size, "a=control")) {
+    char result[256];
+    memset(result, 0, sizeof(result));
+    if (find_value("range:", data+header_size, result)) {
+      context->m_stream_range = result;
+    }
+    memset(result, 0, sizeof(result));
+    const char *pointer = strstr(data+header_size, "m=video");
+    if (find_value("a=control:", pointer, result)) {
+      context->m_video_track = result;
+      if (pointer = strstr(result, "trackID=")) {
+        sscanf(pointer, "trackID=%d", &(context->m_video_track_id));
+      }
+    }
+    memset(result, 0, sizeof(result));
+    pointer = strstr(data+header_size, "m=audio");
+    if (find_value("a=control:", pointer, result)) {
+      context->m_audio_track = result;
+      if (pointer = strstr(result, "trackID=")) {
+        sscanf(pointer, "trackID=%d", &(context->m_audio_track_id));
+      }
+    }
+    if (context->m_video_track.length() > 0) {
+      rtsp_write(fd, "SETUP", context->m_video_track.c_str(), "Transport: RTP/AVP/TCP;unicast;interleaved=0-1\r\n", rtsp_cseq+1);
     }
   }
-  if (strlen(video_track) > 0) {
-    if (pointer = strstr(video_track, "trackID=")) {
-      sscanf(pointer, "trackID=%d", &video_track_id);
+  if (3 == rtsp_cseq && strstr(data+header_size, "Session:")) {
+    char result[256];
+    memset(result, 0, sizeof(result));
+    if (find_value("Session: ", data+header_size, result)) {
+      context->m_stream_session = result;
+    }
+    if (context->m_stream_session.length() > 0 && context->m_stream_range.length() > 0) {
+      snprintf(result, sizeof(result), "Session:%s\r\nRange:%s\r\n", context->m_stream_session.c_str(), context->m_stream_range.c_str());
+      rtsp_write(fd, "PLAY", "rtsp://10.101.10.189/v05", result, rtsp_cseq+1);
+      context->m_buffer_queue->clear();
     }
   }
-  if (strlen(audio_track) > 0) {
-    if (pointer = strstr(audio_track, "trackID=")) {
-      sscanf(pointer, "trackID=%d", &audio_track_id);
-    }
-  }
-  LOG(INFO)<<video_track<<"\t"<<video_track_id<<endl;
-  LOG(INFO)<<audio_track<<"\t"<<audio_track_id<<endl;
-  // step 4: send setup command
-  char setup_message[256], session[128];
-  snprintf(setup_message, sizeof(setup_message), "Transport: RTP/AVP/TCP;unicast;interleaved=0-1\r\n");
-  rtsp_write(fd, "SETUP", video_track, setup_message, rtsp_cseq++);
-  rtsp_read(fd, resp_buffer, MAX_BUFF_SIZE);
-  if (find_value((char*)"Session:", resp_buffer, session)) {
-    LOG(INFO)<<"session: "<<session<<endl;
-    snprintf(setup_message, sizeof(setup_message), "Transport: RTP/AVP/TCP;unicast;interleaved=2-3\r\nSession:%s\r\n", session);
-    rtsp_write(fd, "SETUP", audio_track, setup_message, rtsp_cseq++);
-    rtsp_read(fd, resp_buffer, MAX_BUFF_SIZE);
-  }
-  // step 5: send play command
-  char play_message[256];
-  snprintf(play_message, sizeof(play_message), "Session:%s\r\nRange:%s\r\n", session, range);
-  rtsp_write(fd, "PLAY", "rtsp://10.101.10.189/v05", play_message, rtsp_cseq++);
 }
 
 void rtsp_accept_cb(evutil_socket_t listener, short event, void *arg)
@@ -142,32 +136,25 @@ void rtsp_error_cb(struct bufferevent *bev, short event, void *arg)
 void rtsp_read_cb(struct bufferevent *bev, void *arg)
 {
   char recv_buffer[MAX_BUFF_SIZE];
-  IoctlMsg *recv_message = (IoctlMsg*)recv_buffer;
   int recv_len = 0;
   memset(recv_buffer, 0, sizeof(recv_buffer));
-
   evutil_socket_t fd = bufferevent_getfd(bev);
-  general_context *context = NULL;
-  string ip;
-  uint32_t port = 0;
-  if (context = rtsp_manager::get_instance()->get(fd)) {
-    ip = context->m_conn_ip;
-    port = context->m_conn_port;
-  }
+  general_context *context = rtsp_manager::get_instance()->get(fd);
+  if (!context) return;
 
   recv_len = read_event_buffer(bev, recv_buffer, sizeof(recv_buffer));
-  LOG(INFO)<<"["<<ip<<":"<<port<<" --> localhost.fd="<<fd<<"]"<<" read "<<recv_len<<" bytes message 0X"<<hex<<recv_message->ioctlCmd<<endl;
+
+  context->m_buffer_queue->push(recv_buffer, recv_len);
+  const char *data = context->m_buffer_queue->top();
+  int capacity = context->m_buffer_queue->capacity();
+  IoctlMsg *recv_message = (IoctlMsg*)data;
 
   switch (recv_message->ioctlCmd) {
   case IOCTL_RTSP_READY:
     handle_connect_rtsp_command(bev);
     break;
-  case IOCTL_GET_PARAMETER_RESP:
-    //handle_get_parameter_response(bev, recv_buffer, recv_len);
-    //handle_set_rtspserver_command(bev);
-    break;
   default:
-    //handle_unregcognized_command(bev);
+    LOG(INFO)<<"hello world"<<endl;
     break;
   }
 }
