@@ -17,18 +17,18 @@ typedef struct
 |            contributing source (CSRC) identifiers             |
 |                             ....                              |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-V 每 Version. Identifies the RTP version.
-P 每 Padding. When set, the packet contains one or more additional padding octets at the end which are not part of the payload.
-X 每 Extension bit. When set, the fixed header is followed by exactly one header extension, with a defined format.
-CC- CSRC count. Contains the number of CSRC identifiers that follow the fixed header.
-M 每 Marker. The interpretation of the marker is defined by a profile. It is intended to allow significant events such as frame boundaries to be marked in the packet stream.
+V - Version. Identifies the RTP version.
+P - Padding. When set, the packet contains one or more additional padding octets at the end which are not part of the payload.
+X - Extension bit. When set, the fixed header is followed by exactly one header extension, with a defined format.
+CC - CSRC count. Contains the number of CSRC identifiers that follow the fixed header.
+M - Marker. The interpretation of the marker is defined by a profile. It is intended to allow significant events such as frame boundaries to be marked in the packet stream.
 PT - Payload type. Identifies the format of the RTP payload and determines its interpretation by the application.
      A profile specifies a default static mapping of payload type codes to payload formats. Additional payload type codes may be defined dynamically through non-RTP means.
-sequence number 每 Increments by one for each RTP data packet sent, and may be used by the receiver to detect packet loss and to restore packet sequence.
-timestamp 每 Reflects the sampling instant of the first octet in the RTP data packet.
+sequence number - Increments by one for each RTP data packet sent, and may be used by the receiver to detect packet loss and to restore packet sequence.
+timestamp - Reflects the sampling instant of the first octet in the RTP data packet.
             The sampling instant must be derived from a clock that increments monotonically and linearly in time to allow synchronization and jitter calculations.
-SSRC 每 Synchronization source. This identifier is chosen randomly, with the intent that no two synchronization sources within the same RTP session will have the same SSRC identifier.
-CSRC 每 Contributing source identifiers list. Identifies the contributing sources for the payload contained in this packet.
+SSRC - Synchronization source. This identifier is chosen randomly, with the intent that no two synchronization sources within the same RTP session will have the same SSRC identifier.
+CSRC - Contributing source identifiers list. Identifies the contributing sources for the payload contained in this packet.
 */
 /*
 the byte order of network stream is big-endian
