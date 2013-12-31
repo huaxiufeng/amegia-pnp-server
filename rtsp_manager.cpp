@@ -8,6 +8,7 @@
 #include "gloghelper.h"
 #include "rtsp_manager.h"
 #include "rtsp_net_func.h"
+#include "rtp_net_func.h"
 using namespace std;
 
 static void handle_connect_rtsp_command(struct bufferevent *bev)
@@ -20,7 +21,7 @@ static void handle_connect_rtsp_command(struct bufferevent *bev)
 
   const char *data = context->m_buffer_queue->top();
   int current_size = context->m_buffer_queue->size();
-  int header_size = sizeof(IoctlMsg) +sizeof(IoctlMsgNormal);
+  int header_size = sizeof(IoctlMsg) + sizeof(IoctlMsgNormal);
   int rtsp_cseq = 0;
   for (int i = current_size-1; i >= 0; i--) {
     const char *pointer = strstr(data+i, "CSeq: ");
@@ -71,9 +72,43 @@ static void handle_connect_rtsp_command(struct bufferevent *bev)
     if (context->m_stream_session.length() > 0 && context->m_stream_range.length() > 0) {
       snprintf(result, sizeof(result), "Session:%s\r\nRange:%s\r\n", context->m_stream_session.c_str(), context->m_stream_range.c_str());
       rtsp_write(fd, "PLAY", "rtsp://10.101.10.189/v05", result, rtsp_cseq+1);
-      context->m_buffer_queue->clear();
     }
   }
+  if (4 == rtsp_cseq) {
+    context->m_buffer_queue->clear();
+  }
+}
+
+static void handle_rtp_stream_response(struct bufferevent *bev)
+{
+  evutil_socket_t fd = bufferevent_getfd(bev);
+  general_context *context = rtsp_manager::get_instance()->get(fd);
+  if (!context) return;
+  string ip = context->m_conn_ip;
+  uint32_t port = context->m_conn_port;
+
+  const unsigned char *data = (const unsigned char *)context->m_buffer_queue->top();
+  int current_size = context->m_buffer_queue->size();
+  char magic = data[0];
+  int channel = data[1];
+  int rtp_length = (data[2]<<8) | data[3];
+  LOG(INFO)<<"magic "<<magic<<", channel "<<channel<<", rtp packet size: "<<rtp_length<<", current queue size: "<<current_size<<endl;
+  if (current_size < rtp_length + 4) {
+    return;
+  }
+
+  int recv_len = rtp_length + 4;
+  char *recv_buffer = new char[recv_len];
+  char buffer[65536];
+  memset(recv_buffer, 0, recv_len);
+  context->m_buffer_queue->pop(recv_buffer, recv_len);
+  //LOG(INFO)<<"get one frame! "<<recv_len<<", current queue size: "<<context->m_buffer_queue->size()<<endl;
+  int n = rtp_unpackage(recv_buffer+4, recv_len-4, buffer, sizeof(buffer));
+  //LOG(INFO)<<"rtp_unpackage get "<<n<<" bytes"<<endl;
+  //FILE *fp = fopen("video.h264", "ab");
+  //fwrite(buffer, n, 1, fp);
+  //fclose(fp);
+  delete []recv_buffer;
 }
 
 void rtsp_accept_cb(evutil_socket_t listener, short event, void *arg)
@@ -145,12 +180,14 @@ void rtsp_read_cb(struct bufferevent *bev, void *arg)
   const char *data = context->m_buffer_queue->top();
   IoctlMsg *recv_message = (IoctlMsg*)data;
 
+  //LOG(WARNING)<<"rtsp server get command 0X"<<hex<<recv_message->ioctlCmd<<"size: "<<oct<<recv_message->size<<", recv "<<recv_len<<endl;
+
   switch (recv_message->ioctlCmd) {
   case IOCTL_RTSP_READY:
     handle_connect_rtsp_command(bev);
     break;
   default:
-    LOG(INFO)<<"hello world"<<endl;
+    handle_rtp_stream_response(bev);
     break;
   }
 }

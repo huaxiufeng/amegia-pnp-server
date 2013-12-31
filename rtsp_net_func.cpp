@@ -36,7 +36,7 @@ int rtsp_write(evutil_socket_t fd, const char *method, const char *url, const ch
   strcat(buf, "\r\n");
 
   ret = write(fd, buf, strlen(buf));
-  //LOG(INFO)<<"rtsp write "<<ret<<" bytes, "<<buf<<endl;
+  //LOG(INFO)<<"rtsp write "<<ret<<" bytes: "<<endl<<buf<<endl;
   return ret;
 }
 
@@ -47,6 +47,6 @@ int rtsp_read(evutil_socket_t fd, char *buf, int size)
   if(ret > 0) {
     buf[ret] = 0;
   }
-  //LOG(INFO)<<"rtsp read "<<ret<<" bytes, "<<buf<<endl;
+  //LOG(INFO)<<"rtsp read "<<ret<<" bytes: "<<endl<<buf<<endl;
   return ret;
 }
