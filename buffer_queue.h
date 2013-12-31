@@ -1,8 +1,8 @@
-/*
-  class BufferQueue
-  Author: Hua Xiufeng
-  Date: OCT 22, 2013
-*/
+// Copyright (c) 2012-2013 Hua Xiufeng <huaxiufeng@kaisquare.com.cn>
+// Copyright (c) 2013 KAI Square Software Limited
+// All rights reserved
+//
+// Author: Hua Xiufeng
 
 #ifndef BUFFER_QUEUE_H
 #define BUFFER_QUEUE_H

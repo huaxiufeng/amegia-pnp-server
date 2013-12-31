@@ -6,6 +6,12 @@
 #include <sys/time.h>
 #include <pthread.h>
 #include <map>
+// Copyright (c) 2012-2013 Hua Xiufeng <huaxiufeng@kaisquare.com.cn>
+// Copyright (c) 2013 KAI Square Software Limited
+// All rights reserved
+//
+// Author: Hua Xiufeng
+
 #include "buffer_queue.h"
 
 typedef BufferQueue<char> buffer_queue;

@@ -1,3 +1,9 @@
+// Copyright (c) 2012-2013 Hua Xiufeng <huaxiufeng@kaisquare.com.cn>
+// Copyright (c) 2013 KAI Square Software Limited
+// All rights reserved
+//
+// Author: Hua Xiufeng
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>

@@ -34,12 +34,9 @@
 		</Compiler>
 		<Unit filename="../account_manager.cpp" />
 		<Unit filename="../account_manager.h" />
-		<Unit filename="../account_server_callback.cpp" />
-		<Unit filename="../account_server_callback.h" />
+		<Unit filename="../buffer_queue.h" />
 		<Unit filename="../control_manager.cpp" />
 		<Unit filename="../control_manager.h" />
-		<Unit filename="../control_server_callback.cpp" />
-		<Unit filename="../control_server_callback.h" />
 		<Unit filename="../general_manager.cpp" />
 		<Unit filename="../general_manager.h" />
 		<Unit filename="../global_config.cpp" />
@@ -52,6 +49,8 @@
 		<Unit filename="../message_server_controller.cpp" />
 		<Unit filename="../message_server_controller.h" />
 		<Unit filename="../message_types.h" />
+		<Unit filename="../rtp_net_func.cpp" />
+		<Unit filename="../rtp_net_func.h" />
 		<Unit filename="../rtsp_manager.cpp" />
 		<Unit filename="../rtsp_manager.h" />
 		<Unit filename="../rtsp_net_func.cpp" />
