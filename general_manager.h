@@ -12,58 +12,10 @@ typedef BufferQueue<char> buffer_queue;
 
 class general_context {
 public:
-  general_context():m_conn_port(0),m_video_track_id(0),m_audio_track_id(1){
-    gettimeofday(&m_create_time, NULL);
-    gettimeofday(&m_update_time, NULL);
-    m_buffer_queue = new buffer_queue(4096);
-  }
-  general_context(const general_context &ctx) {
-    m_conn_ip = ctx.m_conn_ip;
-    m_conn_port = ctx.m_conn_port;
-    m_camera_ip = ctx.m_camera_ip;
-    m_camera_mac = ctx.m_camera_mac;
-    m_create_time = ctx.m_create_time;
-    m_update_time = ctx.m_update_time;
-    m_buffer_queue = NULL;
-    if (ctx.m_buffer_queue) {
-      m_buffer_queue = new buffer_queue(ctx.m_buffer_queue->capacity());
-      *m_buffer_queue = *(ctx.m_buffer_queue);
-    }
-    m_video_track_id = ctx.m_video_track_id;
-    m_audio_track_id = ctx.m_audio_track_id;
-    m_video_track = ctx.m_video_track;
-    m_audio_track = ctx.m_audio_track;
-    m_stream_session = ctx.m_stream_session;
-    m_stream_range = ctx.m_stream_range;
-  }
-  general_context& operator= (const general_context &ctx) {
-    if (this != &ctx) {
-      m_conn_ip = ctx.m_conn_ip;
-      m_conn_port = ctx.m_conn_port;
-      m_camera_ip = ctx.m_camera_ip;
-      m_camera_mac = ctx.m_camera_mac;
-      m_create_time = ctx.m_create_time;
-      m_update_time = ctx.m_update_time;
-      if (m_buffer_queue) {
-        delete m_buffer_queue;
-        m_buffer_queue = NULL;
-      }
-      if (ctx.m_buffer_queue) {
-        m_buffer_queue = new buffer_queue(ctx.m_buffer_queue->capacity());
-        *m_buffer_queue = *(ctx.m_buffer_queue);
-      }
-      m_video_track_id = ctx.m_video_track_id;
-      m_audio_track_id = ctx.m_audio_track_id;
-      m_video_track = ctx.m_video_track;
-      m_audio_track = ctx.m_audio_track;
-      m_stream_session = ctx.m_stream_session;
-      m_stream_range = ctx.m_stream_range;
-    }
-    return *this;
-  }
-  ~general_context() {
-    if (m_buffer_queue) delete m_buffer_queue;
-  }
+  general_context();
+  general_context(const general_context &ctx);
+  general_context& operator= (const general_context &ctx);
+  ~general_context();
 
   std::string m_conn_ip;
   uint32_t m_conn_port;

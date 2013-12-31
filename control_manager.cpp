@@ -127,7 +127,16 @@ static void handle_get_parameter_response(struct bufferevent *bev)
 static void handle_unregcognized_command(struct bufferevent *bev)
 {
   evutil_socket_t fd = bufferevent_getfd(bev);
-  if (!control_manager::get_instance()->get(fd)) return;
+  general_context *context = control_manager::get_instance()->get(fd);
+  if (!context) return;
+  string ip = context->m_conn_ip;
+  uint32_t port = context->m_conn_port;
+
+  const char *data = context->m_buffer_queue->top();
+  int current_size = context->m_buffer_queue->size();
+  IoctlMsg *recv_message = (IoctlMsg*)data;
+  LOG(WARNING)<<"control server get unregcognized command 0X"<<hex<<recv_message->ioctlCmd<<"["<<current_size<<" bytes], clear its buffer queue now"<<endl;
+  context->m_buffer_queue->clear();
 }
 
 void control_accept_cb(evutil_socket_t listener, short event, void *arg)
@@ -159,8 +168,6 @@ void control_accept_cb(evutil_socket_t listener, short event, void *arg)
   bufferevent_setcb(bev, control_read_cb, NULL, control_error_cb, arg);
   bufferevent_enable(bev, EV_READ|EV_WRITE|EV_PERSIST);
 }
-
-void control_write_cb(struct bufferevent *bev, void *arg) {}
 
 void control_error_cb(struct bufferevent *bev, short event, void *arg)
 {

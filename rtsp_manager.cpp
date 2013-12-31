@@ -106,8 +106,6 @@ void rtsp_accept_cb(evutil_socket_t listener, short event, void *arg)
   bufferevent_enable(bev, EV_READ|EV_WRITE|EV_PERSIST);
 }
 
-void rtsp_write_cb(struct bufferevent *bev, void *arg) {}
-
 void rtsp_error_cb(struct bufferevent *bev, short event, void *arg)
 {
   evutil_socket_t fd = bufferevent_getfd(bev);
@@ -146,8 +144,6 @@ void rtsp_read_cb(struct bufferevent *bev, void *arg)
   context->m_buffer_queue->push(recv_buffer, recv_len);
   const char *data = context->m_buffer_queue->top();
   IoctlMsg *recv_message = (IoctlMsg*)data;
-
-LOG(INFO)<<"get "<<recv_len<<" bytes"<<endl;
 
   switch (recv_message->ioctlCmd) {
   case IOCTL_RTSP_READY:

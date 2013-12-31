@@ -1,94 +1,170 @@
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#include "message_types.h"
+#include "global_config.h"
+#include "global_net_func.h"
 #include "gloghelper.h"
 #include "account_manager.h"
 using namespace std;
 
-account_manager::account_manager()
+static void handle_keep_alive_command(struct bufferevent *bev)
 {
-  pthread_mutex_init(&m_lock, NULL);
-}
+  evutil_socket_t fd = bufferevent_getfd(bev);
+  general_context *context = account_manager::get_instance()->get(fd);
+  if (!context) return;
+  string ip = context->m_conn_ip;
+  uint32_t port = context->m_conn_port;
 
-account_manager::~account_manager()
-{
-  pthread_mutex_destroy(&m_lock);
-}
+  const char *data = context->m_buffer_queue->top();
+  int current_size = context->m_buffer_queue->size();
 
-bool account_manager::add_account(evutil_socket_t _fd, const char *_ip, uint32_t _port)
-{
-  bool res = false;
-  if (!_ip || _port <= 0 || _port > 65536) return res;
-  lock();
-  account_context context(_ip, _port);
-  m_account_table.insert(std::pair<evutil_socket_t, account_context>(_fd, context));
-  res = true;
-  unlock();
-  return res;
-}
+  char recv_buffer[MAX_BUFF_SIZE];
+  int recv_len = 0;
+  memset(recv_buffer, 0, sizeof(recv_buffer));
 
-bool account_manager::get_account(evutil_socket_t _fd, account_context& context)
-{
-  bool res = false;
-  lock();
-  account_table_type::iterator itor = m_account_table.find(_fd);
-  if (itor != m_account_table.end()) {
-    context = itor->second;
-    res = true;
+  IoctlMsg *recv_message = (IoctlMsg*)data;
+  int message_full_size = 4 + recv_message->size;
+  if (current_size < message_full_size) {
+    return;
   }
-  unlock();
-  return res;
+  context->m_buffer_queue->pop(recv_buffer, message_full_size);
+  recv_len = message_full_size;
 }
 
-bool account_manager::update_account(evutil_socket_t _fd)
+static void handle_get_controlserver_command(struct bufferevent *bev)
 {
-  bool res = false;
-  lock();
-  account_table_type::iterator itor = m_account_table.find(_fd);
-  if (itor != m_account_table.end()) {
-    gettimeofday(&(itor->second.m_time), NULL);
-    res = true;
+  evutil_socket_t fd = bufferevent_getfd(bev);
+  general_context *context = account_manager::get_instance()->get(fd);
+  if (!context) return;
+  string ip = context->m_conn_ip;
+  uint32_t port = context->m_conn_port;
+
+  const char *data = context->m_buffer_queue->top();
+  int current_size = context->m_buffer_queue->size();
+
+  char recv_buffer[MAX_BUFF_SIZE], send_buffer[MAX_BUFF_SIZE];
+  int recv_len = 0, send_len = 0;
+  memset(recv_buffer, 0, sizeof(recv_buffer));
+  memset(send_buffer, 0, sizeof(send_buffer));
+
+  IoctlMsg *recv_message = (IoctlMsg*)data;
+  int message_full_size = 4 + recv_message->size;
+  if (current_size < message_full_size) {
+    return;
   }
-  unlock();
-  return res;
+  context->m_buffer_queue->pop(recv_buffer, message_full_size);
+  recv_len = message_full_size;
+  IoctlMsg *send_message = (IoctlMsg*)send_buffer;
+  send_len = sizeof(IoctlMsg)+sizeof(IoctlMsgGetControlServerResp)+sizeof(stServerDef);
+  send_message->magic[0] = '$';
+  send_message->magic[1] = '\0';
+  send_message->ioctlCmd = IOCTL_GET_CONTROLSERVER_RESP;
+  IoctlMsgGetControlServerResp *resp = (IoctlMsgGetControlServerResp*)send_message->data;
+  resp->number = 1;
+  stServerDef *sever = resp->servers;
+  strcpy(sever->name, g_local_address);
+  sever->port = g_control_server_port;
+  sever->type = sever->err = 0;
+  send_message->size = send_len - 4;
+
+  write_event_buffer(bev, send_buffer, send_len);
 }
 
-bool account_manager::check_account(evutil_socket_t _fd)
+static void handle_unregcognized_command(struct bufferevent *bev)
 {
-  bool res = false;
-  lock();
-  account_table_type::iterator itor = m_account_table.find(_fd);
-  if (itor != m_account_table.end()) {
-    res = true;
+  evutil_socket_t fd = bufferevent_getfd(bev);
+  general_context *context = account_manager::get_instance()->get(fd);
+  if (!context) return;
+  string ip = context->m_conn_ip;
+  uint32_t port = context->m_conn_port;
+
+  const char *data = context->m_buffer_queue->top();
+  int current_size = context->m_buffer_queue->size();
+  IoctlMsg *recv_message = (IoctlMsg*)data;
+  LOG(WARNING)<<"account server get unregcognized command 0X"<<hex<<recv_message->ioctlCmd<<"["<<current_size<<" bytes], clear its buffer queue now"<<endl;
+  context->m_buffer_queue->clear();
+}
+
+void account_accept_cb(evutil_socket_t listener, short event, void *arg)
+{
+  struct event_base *base = (struct event_base *)arg;
+  evutil_socket_t fd;
+  struct sockaddr_in sin;
+  socklen_t slen = sizeof(sin);
+  fd = accept(listener, (struct sockaddr *)&sin, &slen);
+  if (fd < 0) {
+    LOG(ERROR)<<"accept error: "<<strerror(errno)<<", fd = "<<fd<<endl;
+    return;
   }
-  unlock();
-  return res;
-}
-
-bool account_manager::remove_account(evutil_socket_t _fd)
-{
-  bool res = false;
-  lock();
-  account_table_type::iterator itor = m_account_table.find(_fd);
-  if (itor != m_account_table.end()) {
-    m_account_table.erase(_fd);
-    res = true;
+  if (fd > FD_SETSIZE) {
+    LOG(ERROR)<<"accept error: "<<strerror(errno)<<", fd > FD_SETSIZE ["<<fd<<" > "<<FD_SETSIZE<<"]"<<endl;
+    return;
   }
-  unlock();
-  return res;
+
+  string ip = inet_ntoa(sin.sin_addr);
+  uint32_t port = ntohs(sin.sin_port);
+  LOG(INFO)<<"["<<ip<<":"<<port<<" --> localhost.fd="<<fd<<"]"<<" accept connection"<<endl;
+
+  general_context context;
+  context.m_conn_ip = ip;
+  context.m_conn_port = port;
+  account_manager::get_instance()->add(fd, context);
+
+  struct bufferevent *bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
+  bufferevent_setcb(bev, account_read_cb, NULL, account_error_cb, arg);
+  bufferevent_enable(bev, EV_READ|EV_WRITE|EV_PERSIST);
 }
 
-bool account_manager::remove_account(const char *_ip, uint32_t _port)
+void account_error_cb(struct bufferevent *bev, short event, void *arg)
 {
-  bool res = false;
-  lock();
-  account_table_type::iterator itor = m_account_table.begin();
-  do {
-    for (itor = m_account_table.begin(); itor != m_account_table.end(); itor++) {
-      if (itor->second.m_ip == _ip) {
-        m_account_table.erase(itor);
-        res = true;
-        break;
-      }
-    }
-  } while (itor != m_account_table.end());
-  unlock();
-  return res;
+  evutil_socket_t fd = bufferevent_getfd(bev);
+  general_context *context = NULL;
+  string ip;
+  uint32_t port = 0;
+  if (context = account_manager::get_instance()->get(fd)) {
+    ip = context->m_conn_ip;
+    port = context->m_conn_port;
+  }
+
+  if (event & BEV_EVENT_TIMEOUT) {
+    //if bufferevent_set_timeouts() called
+    LOG(ERROR)<<"["<<ip<<":"<<port<<" --> localhost.fd="<<fd<<"]"<<" read/write time out"<<endl;
+  }
+  else if (event & BEV_EVENT_EOF) {
+    LOG(ERROR)<<"["<<ip<<":"<<port<<" --> localhost.fd="<<fd<<"]"<<" connection closed"<<endl;
+  }
+  else if (event & BEV_EVENT_ERROR) {
+    LOG(ERROR)<<"["<<ip<<":"<<port<<" --> localhost.fd="<<fd<<"]"<<" some other error"<<endl;
+  }
+  bufferevent_free(bev);
+}
+
+void account_read_cb(struct bufferevent *bev, void *arg)
+{
+  char recv_buffer[MAX_BUFF_SIZE];
+  int recv_len = 0;
+  memset(recv_buffer, 0, sizeof(recv_buffer));
+  evutil_socket_t fd = bufferevent_getfd(bev);
+  general_context *context = account_manager::get_instance()->get(fd);
+  if (!context) return;
+
+  recv_len = read_event_buffer(bev, recv_buffer, sizeof(recv_buffer));
+
+  context->m_buffer_queue->push(recv_buffer, recv_len);
+  const char *data = context->m_buffer_queue->top();
+  IoctlMsg *recv_message = (IoctlMsg*)data;
+
+  switch (recv_message->ioctlCmd) {
+  case IOCTL_KEEP_ALIVE:
+    handle_keep_alive_command(bev);
+    break;
+  case IOCTL_GET_CONTROLSERVER_REQ:
+    handle_get_controlserver_command(bev);
+    break;
+  default:
+    handle_unregcognized_command(bev);
+    break;
+  }
 }
