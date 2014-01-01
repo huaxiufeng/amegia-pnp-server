@@ -9,7 +9,7 @@
 
 void video_stream_callback(const char *_mac, const unsigned char *_frame_buffer, int _frame_buffer_size)
 {
-  LOG(INFO)<<"hi, I got a "<<_frame_buffer_size<<" bytes frame"<<endl;
+  LOG(INFO)<<_mac<<" hi, I got a "<<_frame_buffer_size<<" bytes frame"<<endl;
   //FILE *fp = fopen("video.h264", "ab");
   //fwrite(_frame_buffer, _frame_buffer_size, 1, fp);
   //fclose(fp);

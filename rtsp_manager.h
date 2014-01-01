@@ -15,10 +15,8 @@ public:
     static rtsp_manager instance;
     return &instance;
   }
+  std::string get_name() {return "rtsp";}
+  void read_event_callback(struct bufferevent *bev, void *arg);
 };
-
-extern void rtsp_accept_cb(evutil_socket_t listener, short event, void *arg);
-extern void rtsp_read_cb(struct bufferevent *bev, void *arg);
-extern void rtsp_error_cb(struct bufferevent *bev, short event, void *arg);
 
 #endif // AMEGIA_PNP_SERVER_RTSP_MANAGER_H

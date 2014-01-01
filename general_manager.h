@@ -40,14 +40,17 @@ public:
 };
 
 typedef std::map<evutil_socket_t, general_context> general_table_type;
+typedef std::map<evutil_socket_t, string> mac_table_type;
 
 class general_manager {
 public:
+  virtual std::string get_name() {return "general";}
   bool add(evutil_socket_t _fd, const general_context& _info);
   general_context* get(evutil_socket_t _fd);
+  const char* get_mac(evutil_socket_t _fd);
   bool keep_alive(evutil_socket_t _fd);
   bool remove(evutil_socket_t _fd);
-  bool remove(const char *_ip);
+  virtual void read_event_callback(struct bufferevent *bev, void *arg);
 protected:
   general_manager() {pthread_mutex_init(&m_lock, NULL);}
   virtual ~general_manager() {pthread_mutex_destroy(&m_lock);}
@@ -56,6 +59,7 @@ protected:
 
   pthread_mutex_t m_lock;
   general_table_type m_table;
+  mac_table_type m_mac_table;
 };
 
 #endif // AMEGIA_PNP_SERVER_GENERAL_MANAGER_H

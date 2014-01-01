@@ -4,8 +4,13 @@
 //
 // Author: Hua Xiufeng
 
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 #include <errno.h>
 #include "global_config.h"
+#include "global_net_func.h"
 #include "gloghelper.h"
 #include "account_manager.h"
 #include "control_manager.h"
@@ -16,9 +21,12 @@ message_server_controller::message_server_controller()
 {
   m_event_base = event_base_new();
 
-  add_listen_event("account-server", g_account_server_port, account_accept_cb);
-  add_listen_event("control-server", g_control_server_port, control_accept_cb);
-  add_listen_event("rtsp-server", g_rtsp_server_port, rtsp_accept_cb);
+  //add_listen_event("account-server", g_account_server_port, account_accept_cb);
+  //add_listen_event("control-server", g_control_server_port, control_accept_cb);
+  //add_listen_event("rtsp-server", g_rtsp_server_port, rtsp_accept_cb);
+  add_listen_event(account_manager::get_instance(), g_account_server_port);
+  add_listen_event(control_manager::get_instance(), g_control_server_port);
+  add_listen_event(rtsp_manager::get_instance(), g_rtsp_server_port);
 }
 
 message_server_controller::~message_server_controller()
@@ -36,8 +44,10 @@ void message_server_controller::kill()
 
 }
 
-void message_server_controller::add_listen_event(const char *_type, uint32_t _port, event_callback_fn _callback)
+void message_server_controller::add_listen_event(void *_manager, uint32_t _port)
+//void message_server_controller::add_listen_event(const char *_type, uint32_t _port, event_callback_fn _callback)
 {
+  string _type = ((general_manager*)_manager)->get_name();
   evutil_socket_t listener = socket(AF_INET, SOCK_STREAM, 0);
   if (listener <= 0) {
     LOG(ERROR)<<"["<<_type<<"]"<<" create socket error: "<<strerror(errno)<<", listener = "<<listener<<endl;
@@ -63,6 +73,83 @@ void message_server_controller::add_listen_event(const char *_type, uint32_t _po
 
   LOG(INFO)<<"["<<_type<<"]"<<" waiting for message at port "<<_port<<endl;
 
-  struct event *listen_event = event_new(m_event_base, listener, EV_READ|EV_PERSIST, _callback, (void*)m_event_base);
+  struct event *listen_event = event_new(m_event_base, listener, EV_READ|EV_PERSIST, message_accept_cb, _manager);
   event_add(listen_event, NULL);
+}
+
+void message_accept_cb(evutil_socket_t listener, short event, void *arg)
+{
+  general_manager *manager = (general_manager*)arg;
+  struct event_base *base = message_server_controller::get_instance()->get_event_base();
+  evutil_socket_t fd;
+  struct sockaddr_in sin;
+  socklen_t slen = sizeof(sin);
+  fd = accept(listener, (struct sockaddr *)&sin, &slen);
+  if (fd < 0) {
+    LOG(ERROR)<<"accept error: "<<strerror(errno)<<", fd = "<<fd<<endl;
+    return;
+  }
+  if (fd > FD_SETSIZE) {
+    LOG(ERROR)<<"accept error: "<<strerror(errno)<<", fd > FD_SETSIZE ["<<fd<<" > "<<FD_SETSIZE<<"]"<<endl;
+    return;
+  }
+
+  string mac = get_peer_mac(fd);
+  string ip = inet_ntoa(sin.sin_addr);
+  uint32_t port = ntohs(sin.sin_port);
+  LOG(INFO)<<"["<<ip<<":"<<port<<" - "<<mac<<" --> localhost.fd="<<fd<<"]"<<" accept connection"<<endl;
+
+  general_context context;
+  context.m_conn_ip = ip;
+  context.m_conn_port = port;
+  context.m_camera_mac = mac;
+
+  manager->add(fd, context);
+
+  struct bufferevent *bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
+  bufferevent_setcb(bev, message_read_cb, NULL, message_error_cb, arg);
+  bufferevent_enable(bev, EV_READ|EV_WRITE|EV_PERSIST);
+}
+
+void message_read_cb(struct bufferevent *bev, void *arg)
+{
+  general_manager *manager = (general_manager*)arg;
+  evutil_socket_t fd = bufferevent_getfd(bev);
+  general_context *context = NULL;
+  string ip, mac;
+  uint32_t port = 0;
+  if (context = manager->get(fd)) {
+    ip = context->m_conn_ip;
+    port = context->m_conn_port;
+    mac = context->m_camera_mac;
+  }
+
+  //LOG(INFO)<<"["<<ip<<":"<<port<<" - "<<mac<<" --> localhost.fd="<<fd<<"]"<<" get message"<<endl;
+
+  manager->read_event_callback(bev, arg);
+}
+
+void message_error_cb(struct bufferevent *bev, short event, void *arg)
+{
+  general_manager *manager = (general_manager*)arg;
+  evutil_socket_t fd = bufferevent_getfd(bev);
+  general_context *context = NULL;
+  string ip;
+  uint32_t port = 0;
+  if (context = manager->get(fd)) {
+    ip = context->m_conn_ip;
+    port = context->m_conn_port;
+  }
+
+  if (event & BEV_EVENT_TIMEOUT) {
+    //if bufferevent_set_timeouts() called
+    LOG(ERROR)<<"["<<ip<<":"<<port<<" --> localhost.fd="<<fd<<"]"<<" read/write time out"<<endl;
+  }
+  else if (event & BEV_EVENT_EOF) {
+    LOG(ERROR)<<"["<<ip<<":"<<port<<" --> localhost.fd="<<fd<<"]"<<" connection closed"<<endl;
+  }
+  else if (event & BEV_EVENT_ERROR) {
+    LOG(ERROR)<<"["<<ip<<":"<<port<<" --> localhost.fd="<<fd<<"]"<<" some other error"<<endl;
+  }
+  bufferevent_free(bev);
 }

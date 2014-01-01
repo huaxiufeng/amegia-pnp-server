@@ -15,10 +15,8 @@ public:
     static control_manager instance;
     return &instance;
   }
+  std::string get_name() {return "control";}
+  void read_event_callback(struct bufferevent *bev, void *arg);
 };
-
-extern void control_accept_cb(evutil_socket_t listener, short event, void *arg);
-extern void control_read_cb(struct bufferevent *bev, void *arg);
-extern void control_error_cb(struct bufferevent *bev, short event, void *arg);
 
 #endif // AMEGIA_PNP_SERVER_CONTROL_MANAGER_H

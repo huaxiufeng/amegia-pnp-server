@@ -17,16 +17,21 @@ public:
     static message_server_controller instance;
     return &instance;
   }
+  struct event_base* get_event_base() {return m_event_base;}
   void run();
   void kill();
 
 private:
   message_server_controller();
   ~message_server_controller();
-  void add_listen_event(const char *_type, uint32_t _port, event_callback_fn _callback);
+  void add_listen_event(void *_manager, uint32_t _port);
 
 private:
   struct event_base *m_event_base;
 };
+
+extern void message_accept_cb(evutil_socket_t listener, short event, void *arg);
+extern void message_read_cb(struct bufferevent *bev, void *arg);
+extern void message_error_cb(struct bufferevent *bev, short event, void *arg);
 
 #endif // AMEGIA_PNP_SERVER_MESSAGE_SERVER_CONTROLLER_H

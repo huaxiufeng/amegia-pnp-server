@@ -5,6 +5,7 @@
 // Author: Hua Xiufeng
 
 #include "gloghelper.h"
+#include "global_net_func.h"
 #include "general_manager.h"
 
 general_context::general_context():
@@ -90,6 +91,25 @@ general_context* general_manager::get(evutil_socket_t _fd)
   return res;
 }
 
+const char* general_manager::get_mac(evutil_socket_t _fd)
+{
+  const char* res = NULL;
+  lock();
+  mac_table_type::iterator itor = m_mac_table.find(_fd);
+  if (itor != m_mac_table.end()) {
+    res = itor->second.c_str();
+  }
+  else {
+    std::string mac = get_peer_mac(_fd);
+    if (mac.length() > 0) {
+      m_mac_table.insert(pair<evutil_socket_t,std::string>(_fd, mac));
+      res = mac.c_str();
+    }
+  }
+  unlock();
+  return res;
+}
+
 bool general_manager::keep_alive(evutil_socket_t _fd)
 {
   bool res = false;
@@ -116,10 +136,7 @@ bool general_manager::remove(evutil_socket_t _fd)
   return res;
 }
 
-bool general_manager::remove(const char *_ip)
+void general_manager::read_event_callback(struct bufferevent *bev, void *arg)
 {
-  bool res = false;
-  lock();
-  unlock();
-  return res;
+  LOG(ERROR)<<"must implement this interface for subclass"<<endl;
 }

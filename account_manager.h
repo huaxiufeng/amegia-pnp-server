@@ -22,10 +22,8 @@ public:
     static account_manager instance;
     return &instance;
   }
+  std::string get_name() {return "account";}
+  void read_event_callback(struct bufferevent *bev, void *arg);
 };
-
-extern void account_accept_cb(evutil_socket_t listener, short event, void *arg);
-extern void account_read_cb(struct bufferevent *bev, void *arg);
-extern void account_error_cb(struct bufferevent *bev, short event, void *arg);
 
 #endif // AMEGIA_PNP_SERVER_ACCOUNT_MANAGER_H

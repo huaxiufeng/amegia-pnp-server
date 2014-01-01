@@ -13,6 +13,7 @@
 #include "global_net_func.h"
 #include "gloghelper.h"
 #include "control_manager.h"
+#include "message_server_controller.h"
 using namespace std;
 
 static void handle_keep_alive_command(struct bufferevent *bev)
@@ -169,61 +170,7 @@ static void handle_unregcognized_command(struct bufferevent *bev)
   context->m_buffer_queue->clear();
 }
 
-void control_accept_cb(evutil_socket_t listener, short event, void *arg)
-{
-  struct event_base *base = (struct event_base *)arg;
-  evutil_socket_t fd;
-  struct sockaddr_in sin;
-  socklen_t slen = sizeof(sin);
-  fd = accept(listener, (struct sockaddr *)&sin, &slen);
-  if (fd < 0) {
-    LOG(ERROR)<<"accept error: "<<strerror(errno)<<", fd = "<<fd<<endl;
-    return;
-  }
-  if (fd > FD_SETSIZE) {
-    LOG(ERROR)<<"accept error: "<<strerror(errno)<<", fd > FD_SETSIZE ["<<fd<<" > "<<FD_SETSIZE<<"]"<<endl;
-    return;
-  }
-
-  string ip = inet_ntoa(sin.sin_addr);
-  uint32_t port = ntohs(sin.sin_port);
-  LOG(INFO)<<"["<<ip<<":"<<port<<" --> localhost.fd="<<fd<<"]"<<" accept connection"<<endl;
-
-  general_context context;
-  context.m_conn_ip = ip;
-  context.m_conn_port = port;
-  control_manager::get_instance()->add(fd, context);
-
-  struct bufferevent *bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
-  bufferevent_setcb(bev, control_read_cb, NULL, control_error_cb, arg);
-  bufferevent_enable(bev, EV_READ|EV_WRITE|EV_PERSIST);
-}
-
-void control_error_cb(struct bufferevent *bev, short event, void *arg)
-{
-  evutil_socket_t fd = bufferevent_getfd(bev);
-  general_context *context = NULL;
-  string ip;
-  uint32_t port = 0;
-  if (context = control_manager::get_instance()->get(fd)) {
-    ip = context->m_conn_ip;
-    port = context->m_conn_port;
-  }
-
-  if (event & BEV_EVENT_TIMEOUT) {
-    //if bufferevent_set_timeouts() called
-    LOG(ERROR)<<"["<<ip<<":"<<port<<" --> localhost.fd="<<fd<<"]"<<" read/write time out"<<endl;
-  }
-  else if (event & BEV_EVENT_EOF) {
-    LOG(ERROR)<<"["<<ip<<":"<<port<<" --> localhost.fd="<<fd<<"]"<<" connection closed"<<endl;
-  }
-  else if (event & BEV_EVENT_ERROR) {
-    LOG(ERROR)<<"["<<ip<<":"<<port<<" --> localhost.fd="<<fd<<"]"<<" some other error"<<endl;
-  }
-  bufferevent_free(bev);
-}
-
-void control_read_cb(struct bufferevent *bev, void *arg)
+void control_manager::read_event_callback(struct bufferevent *bev, void *arg)
 {
   char recv_buffer[MAX_BUFF_SIZE];
   int recv_len = 0;
