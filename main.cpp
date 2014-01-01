@@ -5,12 +5,28 @@
 // Author: Hua Xiufeng
 
 #include "gloghelper.h"
-#include "message_server_controller.h"
+#include "amegia_pnp_sdk.h"
+
+void video_stream_callback(const char *_mac, const unsigned char *_frame_buffer, int _frame_buffer_size)
+{
+  LOG(INFO)<<"hi, I got a "<<_frame_buffer_size<<" bytes frame"<<endl;
+  //FILE *fp = fopen("video.h264", "ab");
+  //fwrite(_frame_buffer, _frame_buffer_size, 1, fp);
+  //fclose(fp);
+}
 
 int main()
 {
   gloghelper::get_instance();
-  message_server_controller::get_instance()->run();
+
+  amegia_pnp_context config;
+  strcpy(config.local_ip_address, "10.101.10.189");
+  config.account_service_port = 10000;
+  config.control_service_port = 10001;
+  config.rtsp_service_port = 10002;
+  config.snapshot_service_port = 10003;
+
+  start_service(&config, video_stream_callback);
 
   return 0;
 }

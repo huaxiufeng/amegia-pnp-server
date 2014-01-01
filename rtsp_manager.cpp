@@ -109,11 +109,11 @@ static void handle_rtp_stream_response(struct bufferevent *bev)
   memset(recv_buffer, 0, recv_len);
   context->m_buffer_queue->pop(recv_buffer, recv_len);
   //LOG(INFO)<<"get one frame! "<<recv_len<<", current queue size: "<<context->m_buffer_queue->size()<<endl;
-  int n = rtp_unpackage(recv_buffer+4, recv_len-4, buffer, sizeof(buffer));
-  //LOG(INFO)<<"rtp_unpackage get "<<n<<" bytes"<<endl;
-  //FILE *fp = fopen("video.h264", "ab");
-  //fwrite(buffer, n, 1, fp);
-  //fclose(fp);
+  int frame_size = rtp_unpackage(recv_buffer+4, recv_len-4, buffer, sizeof(buffer));
+  //LOG(INFO)<<"rtp_unpackage get "<<frame_size<<" bytes"<<endl;
+  if (g_stream_callback) {
+    (*g_stream_callback)("123", (const unsigned char*)buffer, frame_size);
+  }
   delete []recv_buffer;
 }
 
