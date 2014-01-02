@@ -26,6 +26,7 @@ int start_service(const amegia_pnp_context *_config,
 {
   set_configuration(_config);
   g_stream_callback = _cb_stream;
+  g_snapshot_callback = _cb_snapshot;
   message_server_controller::get_instance()->run();
   return 0;
 }

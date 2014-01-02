@@ -13,13 +13,13 @@
 #include "global_net_func.h"
 #include "gloghelper.h"
 #include "message_server_controller.h"
-#include "account_manager.h"
+#include "snapshot_manager.h"
 using namespace std;
 
 static void handle_keep_alive_command(struct bufferevent *bev)
 {
   evutil_socket_t fd = bufferevent_getfd(bev);
-  general_context *context = account_manager::get_instance()->get(fd);
+  general_context *context = snapshot_manager::get_instance()->get(fd);
   if (!context) return;
   string ip = context->m_conn_ip;
   uint32_t port = context->m_conn_port;
@@ -40,52 +40,54 @@ static void handle_keep_alive_command(struct bufferevent *bev)
   recv_len = message_full_size;
 }
 
-static void handle_get_controlserver_command(struct bufferevent *bev)
+static void handle_set_snapshot_command(struct bufferevent *bev)
 {
   evutil_socket_t fd = bufferevent_getfd(bev);
-  general_context *context = account_manager::get_instance()->get(fd);
+  general_context *context = snapshot_manager::get_instance()->get(fd);
   if (!context) return;
   string ip = context->m_conn_ip;
   uint32_t port = context->m_conn_port;
 
   const char *data = context->m_buffer_queue->top();
   int current_size = context->m_buffer_queue->size();
-
-  char recv_buffer[MAX_BUFF_SIZE], send_buffer[MAX_BUFF_SIZE];
-  int recv_len = 0, send_len = 0;
-  memset(recv_buffer, 0, sizeof(recv_buffer));
-  memset(send_buffer, 0, sizeof(send_buffer));
-
   IoctlMsg *recv_message = (IoctlMsg*)data;
   int message_full_size = 4 + recv_message->size;
   if (current_size < message_full_size) {
     return;
   }
-  context->m_buffer_queue->pop(recv_buffer, message_full_size);
-  recv_len = message_full_size;
-  IoctlMsg *send_message = (IoctlMsg*)send_buffer;
-  send_len = sizeof(IoctlMsg)+sizeof(IoctlMsgGetControlServerResp)+sizeof(stServerDef);
-  send_message->magic[0] = '$';
-  send_message->magic[1] = '\0';
-  send_message->ioctlCmd = IOCTL_GET_CONTROLSERVER_RESP;
-  IoctlMsgGetControlServerResp *resp = (IoctlMsgGetControlServerResp*)send_message->data;
-  resp->number = 1;
-  stServerDef *server = resp->servers;
-  strcpy(server->name, g_local_address);
-  server->port = g_control_server_port;
-  server->type = server->err = 0;
-  send_message->size = send_len - 4;
 
-  write_event_buffer(bev, send_buffer, send_len);
+  int current_snapshot_size = 0, total_snapshot_size = 0, end_flag = 0;
+  char snapshot[MAX_SNAPSHOT_SIZE];
+  for (int index = 0; index < current_size-1; index++) {
+    if (data[index] == '$' && data[index+1] == '\0') {
+      IoctlMsgSetSnapshotReq *response = (IoctlMsgSetSnapshotReq*)(data+index+sizeof(IoctlMsg));
+      if (0 == total_snapshot_size) total_snapshot_size = response->total;
+      memcpy(snapshot+current_snapshot_size, response->result, response->count);
+      current_snapshot_size += response->count;
+      end_flag = response->endflag;
+      //LOG(INFO)<<"index:"<<(int)response->index<<" end:"<<(int)response->endflag<<" ["<<current_snapshot_size<<"/"<<(int)response->total<<"]"<<endl;
+      if (current_snapshot_size >= total_snapshot_size || end_flag) {
+        LOG(INFO)<<"["<<ip<<":"<<port<<" --> localhost.fd="<<fd<<"]"<<" get snapshot "<<current_snapshot_size<<" bytes, total "<<total_snapshot_size<<endl;
+        break;
+      }
+      index = index + sizeof(IoctlMsg) + sizeof(IoctlMsgSetSnapshotReq) + response->count - 1;
+    }
+  }
+  if (current_snapshot_size >= total_snapshot_size && end_flag) {
+    context->m_buffer_queue->clear();
+    if (g_snapshot_callback) {
+      (*g_snapshot_callback)(context->m_camera_mac.c_str(), (const unsigned char*)snapshot, current_snapshot_size);
+    }
+  }
 }
 
-void account_manager::read_event_callback(struct bufferevent *bev, void *arg)
+void snapshot_manager::read_event_callback(struct bufferevent *bev, void *arg)
 {
   char recv_buffer[MAX_BUFF_SIZE];
   int recv_len = 0;
   memset(recv_buffer, 0, sizeof(recv_buffer));
   evutil_socket_t fd = bufferevent_getfd(bev);
-  general_context *context = account_manager::get_instance()->get(fd);
+  general_context *context = snapshot_manager::get_instance()->get(fd);
   if (!context) return;
 
   recv_len = read_event_buffer(bev, recv_buffer, sizeof(recv_buffer));
@@ -95,14 +97,15 @@ void account_manager::read_event_callback(struct bufferevent *bev, void *arg)
   IoctlMsg *recv_message = (IoctlMsg*)data;
 
   switch (recv_message->ioctlCmd) {
+  case IOCTL_CAM_HELO:
   case IOCTL_KEEP_ALIVE:
     handle_keep_alive_command(bev);
     break;
-  case IOCTL_GET_CONTROLSERVER_REQ:
-    handle_get_controlserver_command(bev);
+  case IOCTL_SET_SNAPSHOT_REQ:
+    handle_set_snapshot_command(bev);
     break;
   default:
-    handle_unregcognized_command(account_manager::get_instance(), bev);
+    handle_unregcognized_command(snapshot_manager::get_instance(), bev);
     break;
   }
 }

@@ -4,15 +4,24 @@
 //
 // Author: Hua Xiufeng
 
+#include <stdio.h>
 #include "gloghelper.h"
 #include "amegia_pnp_sdk.h"
 
-void video_stream_callback(const char *_mac, const unsigned char *_frame_buffer, int _frame_buffer_size)
+void stream_callback(const char *_mac, const unsigned char *_frame_buffer, int _frame_buffer_size)
 {
-  LOG(INFO)<<_mac<<" hi, I got a "<<_frame_buffer_size<<" bytes frame"<<endl;
+  //LOG(INFO)<<_mac<<" hi, I got a "<<_frame_buffer_size<<" bytes frame"<<endl;
   //FILE *fp = fopen("video.h264", "ab");
   //fwrite(_frame_buffer, _frame_buffer_size, 1, fp);
   //fclose(fp);
+}
+
+void snapshot_callback(const char *_mac, const unsigned char *_snapshot_buffer, int _snapshot_buffer_size)
+{
+  LOG(INFO)<<_mac<<" hi, I got a "<<_snapshot_buffer_size<<" bytes snapshot"<<endl;
+//  FILE *fp = fopen("snapshot.jpg", "wb");
+//  fwrite(_snapshot_buffer, _snapshot_buffer_size, 1, fp);
+//  fclose(fp);
 }
 
 int main()
@@ -26,7 +35,7 @@ int main()
   config.rtsp_service_port = 10002;
   config.snapshot_service_port = 10003;
 
-  start_service(&config, video_stream_callback);
+  start_service(&config, stream_callback, snapshot_callback);
 
   return 0;
 }

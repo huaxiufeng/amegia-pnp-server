@@ -14,19 +14,19 @@
 #include "gloghelper.h"
 #include "account_manager.h"
 #include "control_manager.h"
+#include "message_types.h"
 #include "rtsp_manager.h"
+#include "snapshot_manager.h"
 #include "message_server_controller.h"
 
 message_server_controller::message_server_controller()
 {
   m_event_base = event_base_new();
 
-  //add_listen_event("account-server", g_account_server_port, account_accept_cb);
-  //add_listen_event("control-server", g_control_server_port, control_accept_cb);
-  //add_listen_event("rtsp-server", g_rtsp_server_port, rtsp_accept_cb);
   add_listen_event(account_manager::get_instance(), g_account_server_port);
   add_listen_event(control_manager::get_instance(), g_control_server_port);
   add_listen_event(rtsp_manager::get_instance(), g_rtsp_server_port);
+  add_listen_event(snapshot_manager::get_instance(), g_snapshot_server_port);
 }
 
 message_server_controller::~message_server_controller()
@@ -45,7 +45,6 @@ void message_server_controller::kill()
 }
 
 void message_server_controller::add_listen_event(void *_manager, uint32_t _port)
-//void message_server_controller::add_listen_event(const char *_type, uint32_t _port, event_callback_fn _callback)
 {
   string _type = ((general_manager*)_manager)->get_name();
   evutil_socket_t listener = socket(AF_INET, SOCK_STREAM, 0);
@@ -97,7 +96,7 @@ void message_accept_cb(evutil_socket_t listener, short event, void *arg)
   string mac = get_peer_mac(fd);
   string ip = inet_ntoa(sin.sin_addr);
   uint32_t port = ntohs(sin.sin_port);
-  LOG(INFO)<<"["<<ip<<":"<<port<<" - "<<mac<<" --> localhost.fd="<<fd<<"]"<<" accept connection"<<endl;
+  LOG(INFO)<<"["<<ip<<":"<<port<<" - "<<mac<<" --> localhost.fd="<<fd<<"] "<<manager->get_name()<<" service accept connection"<<endl;
 
   general_context context;
   context.m_conn_ip = ip;
@@ -152,4 +151,22 @@ void message_error_cb(struct bufferevent *bev, short event, void *arg)
     LOG(ERROR)<<"["<<ip<<":"<<port<<" --> localhost.fd="<<fd<<"]"<<" some other error"<<endl;
   }
   bufferevent_free(bev);
+}
+
+void handle_unregcognized_command(void *_manager, struct bufferevent *bev)
+{
+  string _type = ((general_manager*)_manager)->get_name();
+  evutil_socket_t fd = bufferevent_getfd(bev);
+  general_context *context = snapshot_manager::get_instance()->get(fd);
+  if (!context) return;
+  string mac = context->m_camera_mac;
+  string ip = context->m_conn_ip;
+  uint32_t port = context->m_conn_port;
+
+  const char *data = context->m_buffer_queue->top();
+  int current_size = context->m_buffer_queue->size();
+  IoctlMsg *recv_message = (IoctlMsg*)data;
+  LOG(INFO)<<"["<<ip<<":"<<port<<" - "<<mac<<" --> localhost.fd="<<fd<<"] "<<_type<<" service get unregcognized command 0X"<<recv_message->ioctlCmd<<"["<<oct<<current_size<<" bytes], clear buffer queue now"<<endl;
+
+  context->m_buffer_queue->clear();
 }

@@ -59,7 +59,9 @@ public:
   {
     pthread_mutex_lock(&_lock);
     if (_size >= len && len > 0) {
-      memcpy(dst, _data, len);
+      if (dst) {
+        memcpy(dst, _data, len);
+      }
       memmove(_data, _data+len, _size-len);
       _size -= len;
     }

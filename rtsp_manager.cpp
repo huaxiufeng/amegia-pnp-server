@@ -99,23 +99,22 @@ static void handle_rtp_stream_response(struct bufferevent *bev)
   char magic = data[0];
   int channel = data[1];
   int rtp_length = (data[2]<<8) | data[3];
-  LOG(INFO)<<"magic "<<magic<<", channel "<<channel<<", rtp packet size: "<<rtp_length<<", current queue size: "<<current_size<<endl;
+  //LOG(INFO)<<"magic "<<magic<<", channel "<<channel<<", rtp packet size: "<<rtp_length<<", current queue size: "<<current_size<<endl;
   if (current_size < rtp_length + 4) {
     return;
   }
 
   int recv_len = rtp_length + 4;
-  char *recv_buffer = new char[recv_len];
-  char buffer[65536];
+  char recv_buffer[MAX_VIDEO_FRAME_SIZE];
+  char frame_buffer[MAX_VIDEO_FRAME_SIZE];
   memset(recv_buffer, 0, recv_len);
   context->m_buffer_queue->pop(recv_buffer, recv_len);
   //LOG(INFO)<<"get one frame! "<<recv_len<<", current queue size: "<<context->m_buffer_queue->size()<<endl;
-  int frame_size = rtp_unpackage(recv_buffer+4, recv_len-4, buffer, sizeof(buffer));
+  int frame_size = rtp_unpackage(recv_buffer+4, recv_len-4, frame_buffer, sizeof(frame_buffer));
   //LOG(INFO)<<"rtp_unpackage get "<<frame_size<<" bytes"<<endl;
   if (g_stream_callback) {
-    (*g_stream_callback)(context->m_camera_mac.c_str(), (const unsigned char*)buffer, frame_size);
+    (*g_stream_callback)(context->m_camera_mac.c_str(), (const unsigned char*)frame_buffer, frame_size);
   }
-  delete []recv_buffer;
 }
 
 void rtsp_manager::read_event_callback(struct bufferevent *bev, void *arg)
