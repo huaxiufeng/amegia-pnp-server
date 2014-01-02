@@ -34,6 +34,8 @@
 		</Compiler>
 		<Unit filename="../account_manager.cpp" />
 		<Unit filename="../account_manager.h" />
+		<Unit filename="../amegia_pnp_sdk.cpp" />
+		<Unit filename="../amegia_pnp_sdk.h" />
 		<Unit filename="../buffer_queue.h" />
 		<Unit filename="../control_manager.cpp" />
 		<Unit filename="../control_manager.h" />
@@ -55,6 +57,8 @@
 		<Unit filename="../rtsp_manager.h" />
 		<Unit filename="../rtsp_net_func.cpp" />
 		<Unit filename="../rtsp_net_func.h" />
+		<Unit filename="../snapshot_manager.cpp" />
+		<Unit filename="../snapshot_manager.h" />
 		<Extensions>
 			<code_completion />
 			<envvars />

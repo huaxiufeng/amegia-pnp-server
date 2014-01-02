@@ -39,27 +39,30 @@ public:
   std::string m_stream_range;
 };
 
-typedef std::map<evutil_socket_t, general_context> general_table_type;
-typedef std::map<evutil_socket_t, string> mac_table_type;
+typedef std::map<evutil_socket_t, general_context> general_context_table_type;
+typedef std::map<evutil_socket_t, struct bufferevent*> buffevent_table_type;
 
 class general_manager {
 public:
-  virtual std::string get_name() {return "general";}
-  bool add(evutil_socket_t _fd, const general_context& _info);
+  bool add(evutil_socket_t _fd, const general_context& _info, struct bufferevent *_bev);
   general_context* get(evutil_socket_t _fd);
-  const char* get_mac(evutil_socket_t _fd);
   bool keep_alive(evutil_socket_t _fd);
-  bool remove(evutil_socket_t _fd);
+  bool remove(const char *_mac);
   virtual void read_event_callback(struct bufferevent *bev, void *arg);
+  virtual std::string get_name() {return "general";}
+  struct event* get_listen_event() {return m_listen_event;}
+  void set_listen_event(struct event* ev) {m_listen_event = ev;}
 protected:
-  general_manager() {pthread_mutex_init(&m_lock, NULL);}
+  general_manager():m_listen_event(0) {pthread_mutex_init(&m_lock, NULL);}
   virtual ~general_manager() {pthread_mutex_destroy(&m_lock);}
   void lock() {pthread_mutex_lock(&m_lock);}
   void unlock() {pthread_mutex_unlock(&m_lock);}
 
   pthread_mutex_t m_lock;
-  general_table_type m_table;
-  mac_table_type m_mac_table;
+  general_context_table_type m_context_table;
+  buffevent_table_type m_buffevent_table;
+
+  struct event *m_listen_event;
 };
 
 #endif // AMEGIA_PNP_SERVER_GENERAL_MANAGER_H

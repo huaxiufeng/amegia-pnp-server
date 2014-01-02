@@ -21,6 +21,8 @@ public:
   void run();
   void kill();
 
+  void disconnected(const char *_mac);
+
 private:
   message_server_controller();
   ~message_server_controller();

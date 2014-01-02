@@ -66,14 +66,17 @@ general_context& general_context::operator= (const general_context &ctx)
 
 general_context::~general_context()
 {
-  if (m_buffer_queue) delete m_buffer_queue;
+  if (m_buffer_queue) {
+    delete m_buffer_queue;
+  }
 }
 
-bool general_manager::add(evutil_socket_t _fd, const general_context& _info)
+bool general_manager::add(evutil_socket_t _fd, const general_context& _info, struct bufferevent *_bev)
 {
   bool res = false;
   lock();
-  m_table.insert(std::pair<evutil_socket_t, general_context>(_fd, _info));
+  m_context_table.insert(std::pair<evutil_socket_t, general_context>(_fd, _info));
+  m_buffevent_table.insert(std::pair<evutil_socket_t, struct bufferevent*>(_fd, _bev));
   res = true;
   unlock();
   return res;
@@ -83,28 +86,9 @@ general_context* general_manager::get(evutil_socket_t _fd)
 {
   general_context* res = NULL;
   lock();
-  general_table_type::iterator itor = m_table.find(_fd);
-  if (itor != m_table.end()) {
+  general_context_table_type::iterator itor = m_context_table.find(_fd);
+  if (itor != m_context_table.end()) {
     res = &(itor->second);
-  }
-  unlock();
-  return res;
-}
-
-const char* general_manager::get_mac(evutil_socket_t _fd)
-{
-  const char* res = NULL;
-  lock();
-  mac_table_type::iterator itor = m_mac_table.find(_fd);
-  if (itor != m_mac_table.end()) {
-    res = itor->second.c_str();
-  }
-  else {
-    std::string mac = get_peer_mac(_fd);
-    if (mac.length() > 0) {
-      m_mac_table.insert(pair<evutil_socket_t,std::string>(_fd, mac));
-      res = mac.c_str();
-    }
   }
   unlock();
   return res;
@@ -114,8 +98,8 @@ bool general_manager::keep_alive(evutil_socket_t _fd)
 {
   bool res = false;
   lock();
-  general_table_type::iterator itor = m_table.find(_fd);
-  if (itor != m_table.end()) {
+  general_context_table_type::iterator itor = m_context_table.find(_fd);
+  if (itor != m_context_table.end()) {
     gettimeofday(&(itor->second.m_update_time), NULL);
     res = true;
   }
@@ -123,15 +107,33 @@ bool general_manager::keep_alive(evutil_socket_t _fd)
   return res;
 }
 
-bool general_manager::remove(evutil_socket_t _fd)
+bool general_manager::remove(const char *_mac)
 {
   bool res = false;
   lock();
-  general_table_type::iterator itor = m_table.find(_fd);
-  if (itor != m_table.end()) {
-    m_table.erase(itor);
-    res = true;
-  }
+  evutil_socket_t fd = 0;
+  LOG(INFO)<<get_name()<<" remove "<<_mac<<" ..."<<endl;
+  do {
+    general_context_table_type::iterator itor = m_context_table.begin();
+    for (; itor != m_context_table.end(); itor++) {
+      if (itor->second.m_camera_mac == _mac) {
+        fd = itor->first;
+        LOG(INFO)<<"found fd = "<<fd<<endl;
+      }
+    }
+    if (itor != m_context_table.end()) {
+      m_context_table.erase(itor);
+      res = true;
+    }
+  } while (0);
+  do {
+    buffevent_table_type::iterator itor = m_buffevent_table.find(fd);
+    if (itor != m_buffevent_table.end()) {
+      bufferevent_free(itor->second);
+      LOG(INFO)<<"bufferevent_free for fd = "<<fd<<endl;
+      m_buffevent_table.erase(itor);
+    }
+  } while (0);
   unlock();
   return res;
 }
