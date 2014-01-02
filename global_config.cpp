@@ -7,7 +7,7 @@
 #include "global_config.h"
 #include "amegia_pnp_sdk.h"
 
-char g_local_address[128] = "10.101.10.189";
+char g_local_address[128] = "127.0.0.1";
 int g_account_server_port = 10000;
 int g_control_server_port = 10001;
 int g_rtsp_server_port = 10002;

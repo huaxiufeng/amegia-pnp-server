@@ -34,6 +34,7 @@ extern void message_accept_cb(evutil_socket_t listener, short event, void *arg);
 extern void message_read_cb(struct bufferevent *bev, void *arg);
 extern void message_error_cb(struct bufferevent *bev, short event, void *arg);
 
+extern void handle_keep_alive_command(void *_manager, struct bufferevent *bev);
 extern void handle_unregcognized_command(void *_manager, struct bufferevent *bev);
 
 #endif // AMEGIA_PNP_SERVER_MESSAGE_SERVER_CONTROLLER_H

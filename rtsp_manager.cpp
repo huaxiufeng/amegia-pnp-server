@@ -132,8 +132,6 @@ void rtsp_manager::read_event_callback(struct bufferevent *bev, void *arg)
   const char *data = context->m_buffer_queue->top();
   IoctlMsg *recv_message = (IoctlMsg*)data;
 
-  //LOG(WARNING)<<"rtsp server get command 0X"<<hex<<recv_message->ioctlCmd<<"size: "<<oct<<recv_message->size<<", recv "<<recv_len<<endl;
-
   switch (recv_message->ioctlCmd) {
   case IOCTL_RTSP_READY:
     handle_connect_rtsp_command(bev);

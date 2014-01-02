@@ -153,6 +153,23 @@ void message_error_cb(struct bufferevent *bev, short event, void *arg)
   bufferevent_free(bev);
 }
 
+void handle_keep_alive_command(void *_manager, struct bufferevent *bev)
+{
+  evutil_socket_t fd = bufferevent_getfd(bev);
+  general_context *context = ((general_manager*)_manager)->get(fd);
+  if (!context) return;
+
+  const char *data = context->m_buffer_queue->top();
+  int current_size = context->m_buffer_queue->size();
+
+  IoctlMsg *recv_message = (IoctlMsg*)data;
+  int message_full_size = 4 + recv_message->size;
+  if (current_size < message_full_size) {
+    return;
+  }
+  context->m_buffer_queue->pop(NULL, message_full_size);
+}
+
 void handle_unregcognized_command(void *_manager, struct bufferevent *bev)
 {
   string _type = ((general_manager*)_manager)->get_name();
@@ -166,7 +183,7 @@ void handle_unregcognized_command(void *_manager, struct bufferevent *bev)
   const char *data = context->m_buffer_queue->top();
   int current_size = context->m_buffer_queue->size();
   IoctlMsg *recv_message = (IoctlMsg*)data;
-  LOG(INFO)<<"["<<ip<<":"<<port<<" - "<<mac<<" --> localhost.fd="<<fd<<"] "<<_type<<" service get unregcognized command 0X"<<recv_message->ioctlCmd<<"["<<oct<<current_size<<" bytes], clear buffer queue now"<<endl;
+  LOG(INFO)<<"["<<ip<<":"<<port<<" - "<<mac<<" --> localhost.fd="<<fd<<"] "<<_type<<" service get unregcognized command 0X"<<hex<<recv_message->ioctlCmd<<" ["<<oct<<current_size<<" bytes], clear buffer queue now"<<endl;
 
   context->m_buffer_queue->clear();
 }

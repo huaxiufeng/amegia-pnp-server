@@ -16,30 +16,6 @@
 #include "snapshot_manager.h"
 using namespace std;
 
-static void handle_keep_alive_command(struct bufferevent *bev)
-{
-  evutil_socket_t fd = bufferevent_getfd(bev);
-  general_context *context = snapshot_manager::get_instance()->get(fd);
-  if (!context) return;
-  string ip = context->m_conn_ip;
-  uint32_t port = context->m_conn_port;
-
-  const char *data = context->m_buffer_queue->top();
-  int current_size = context->m_buffer_queue->size();
-
-  char recv_buffer[MAX_BUFF_SIZE];
-  int recv_len = 0;
-  memset(recv_buffer, 0, sizeof(recv_buffer));
-
-  IoctlMsg *recv_message = (IoctlMsg*)data;
-  int message_full_size = 4 + recv_message->size;
-  if (current_size < message_full_size) {
-    return;
-  }
-  context->m_buffer_queue->pop(recv_buffer, message_full_size);
-  recv_len = message_full_size;
-}
-
 static void handle_set_snapshot_command(struct bufferevent *bev)
 {
   evutil_socket_t fd = bufferevent_getfd(bev);
@@ -99,7 +75,7 @@ void snapshot_manager::read_event_callback(struct bufferevent *bev, void *arg)
   switch (recv_message->ioctlCmd) {
   case IOCTL_CAM_HELO:
   case IOCTL_KEEP_ALIVE:
-    handle_keep_alive_command(bev);
+    handle_keep_alive_command(snapshot_manager::get_instance(), bev);
     break;
   case IOCTL_SET_SNAPSHOT_REQ:
     handle_set_snapshot_command(bev);
