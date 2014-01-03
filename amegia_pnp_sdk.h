@@ -14,14 +14,17 @@ public:
   int control_service_port;
   int rtsp_service_port;
   int snapshot_service_port;
+  int snapshot_interval;
 };
 
-typedef void (*fvideo_stream_callback)(const char *_mac, const unsigned char *_frame_buffer, int _frame_buffer_size);
-typedef void (*fvideo_snapshot_callback)(const char *_mac, const unsigned char *_snapshot_buffer, int _snapshot_buffer_size);
+typedef void (*fstream_callback)(const char *_ip, const char *_mac, const unsigned char *_frame_buffer, int _frame_buffer_size);
+typedef void (*fsnapshot_callback)(const char *_ip, const char *_mac, const unsigned char *_snapshot_buffer, int _snapshot_buffer_size);
+typedef void (*fconnection_callback)(const char *_ip, const char *_mac, const char *_service_type, int _fd, bool _connected);
 
 extern int start_service(const amegia_pnp_context *_config,
-                         fvideo_stream_callback _cb_stream = 0,
-                         fvideo_snapshot_callback _cb_snapshot = 0);
+                         fstream_callback _cb_stream = 0,
+                         fsnapshot_callback _cb_snapshot = 0,
+                         fconnection_callback _cb_connection = 0);
 
 extern void stop_service();
 

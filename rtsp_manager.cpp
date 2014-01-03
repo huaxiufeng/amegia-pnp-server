@@ -110,10 +110,11 @@ static void handle_rtp_stream_response(struct bufferevent *bev)
   memset(recv_buffer, 0, recv_len);
   context->m_buffer_queue->pop(recv_buffer, recv_len);
   //LOG(INFO)<<"get one frame! "<<recv_len<<", current queue size: "<<context->m_buffer_queue->size()<<endl;
+  rtsp_manager::get_instance()->keep_alive(fd);
   int frame_size = rtp_unpackage(recv_buffer+4, recv_len-4, frame_buffer, sizeof(frame_buffer));
   //LOG(INFO)<<"rtp_unpackage get "<<frame_size<<" bytes"<<endl;
   if (g_stream_callback) {
-    (*g_stream_callback)(context->m_camera_mac.c_str(), (const unsigned char*)frame_buffer, frame_size);
+    (*g_stream_callback)(context->m_conn_ip.c_str(), context->m_camera_mac.c_str(), (const unsigned char*)frame_buffer, frame_size);
   }
 }
 

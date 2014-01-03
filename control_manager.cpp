@@ -81,7 +81,7 @@ static void handle_get_parameter_response(struct bufferevent *bev)
       end_flag = response->endflag;
       //LOG(INFO)<<"index:"<<(int)response->index<<" end:"<<(int)response->endflag<<" ["<<current_parameter_size<<"/"<<(int)response->total<<"]"<<endl;
       if (current_parameter_size >= total_parameter_size || end_flag) {
-        LOG(INFO)<<"["<<ip<<":"<<port<<" --> localhost.fd="<<fd<<"]"<<" get parameter "<<current_parameter_size<<" bytes, total "<<total_parameter_size<<endl;
+        //LOG(INFO)<<"["<<ip<<":"<<port<<" --> localhost.fd="<<fd<<"]"<<" get parameter "<<current_parameter_size<<" bytes, total "<<total_parameter_size<<endl;
         break;
       }
       index = index + sizeof(IoctlMsg) + sizeof(IoctlMsgGetParameterResp) + response->count - 1;
@@ -184,7 +184,7 @@ static void handle_set_snapshotserver_command(struct bufferevent *bev)
   send_message->magic[1] = '\0';
   send_message->ioctlCmd = IOCTL_GET_SNAPSHOTSERVER_RESP;
   IoctlMsgGetSnapshotServerResp *resp = (IoctlMsgGetSnapshotServerResp*)send_message->data;
-  resp->interval = 30;
+  resp->interval = g_snapshot_interval;
   resp->number = 1;
   stServerDef *server = resp->servers;
   strcpy(server->name, g_local_address);

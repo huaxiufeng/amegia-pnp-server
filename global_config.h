@@ -19,7 +19,10 @@ extern int g_control_server_port;
 extern int g_rtsp_server_port;
 extern int g_snapshot_server_port;
 
-extern fvideo_stream_callback g_stream_callback;
-extern fvideo_snapshot_callback g_snapshot_callback;
+extern int g_snapshot_interval;
+
+extern fstream_callback g_stream_callback;
+extern fsnapshot_callback g_snapshot_callback;
+extern fconnection_callback g_connection_callback;
 
 #endif // AMEGIA_PNP_SERVER_GLOBAL_CONFIG_H

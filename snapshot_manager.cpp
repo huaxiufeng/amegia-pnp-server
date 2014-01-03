@@ -43,7 +43,7 @@ static void handle_set_snapshot_command(struct bufferevent *bev)
       end_flag = response->endflag;
       //LOG(INFO)<<"index:"<<(int)response->index<<" end:"<<(int)response->endflag<<" ["<<current_snapshot_size<<"/"<<(int)response->total<<"]"<<endl;
       if (current_snapshot_size >= total_snapshot_size || end_flag) {
-        LOG(INFO)<<"["<<ip<<":"<<port<<" --> localhost.fd="<<fd<<"]"<<" get snapshot "<<current_snapshot_size<<" bytes, total "<<total_snapshot_size<<endl;
+        //LOG(INFO)<<"["<<ip<<":"<<port<<" --> localhost.fd="<<fd<<"]"<<" get snapshot "<<current_snapshot_size<<" bytes, total "<<total_snapshot_size<<endl;
         break;
       }
       index = index + sizeof(IoctlMsg) + sizeof(IoctlMsgSetSnapshotReq) + response->count - 1;
@@ -52,7 +52,7 @@ static void handle_set_snapshot_command(struct bufferevent *bev)
   if (current_snapshot_size >= total_snapshot_size && end_flag) {
     context->m_buffer_queue->clear();
     if (g_snapshot_callback) {
-      (*g_snapshot_callback)(context->m_camera_mac.c_str(), (const unsigned char*)snapshot, current_snapshot_size);
+      (*g_snapshot_callback)(context->m_conn_ip.c_str(), context->m_camera_mac.c_str(), (const unsigned char*)snapshot, current_snapshot_size);
     }
   }
 }

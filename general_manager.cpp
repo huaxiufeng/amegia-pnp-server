@@ -6,13 +6,14 @@
 
 #include "gloghelper.h"
 #include "global_net_func.h"
+#include "global_config.h"
 #include "general_manager.h"
 
 general_context::general_context():
 m_conn_port(0),m_video_track_id(0),m_audio_track_id(1)
 {
-  gettimeofday(&m_create_time, NULL);
-  gettimeofday(&m_update_time, NULL);
+  m_create_time = time(NULL);
+  m_update_time = time(NULL);
   m_buffer_queue = new buffer_queue(4096);
 }
 
@@ -100,37 +101,31 @@ bool general_manager::keep_alive(evutil_socket_t _fd)
   lock();
   general_context_table_type::iterator itor = m_context_table.find(_fd);
   if (itor != m_context_table.end()) {
-    gettimeofday(&(itor->second.m_update_time), NULL);
+    //LOG(INFO)<<"keep alive for fd = "<<_fd<<endl;
+    itor->second.m_update_time = time(NULL);
     res = true;
   }
   unlock();
   return res;
 }
 
-bool general_manager::remove(const char *_mac)
+bool general_manager::remove(evutil_socket_t _fd)
 {
   bool res = false;
   lock();
-  evutil_socket_t fd = 0;
-  LOG(INFO)<<get_name()<<" remove "<<_mac<<" ..."<<endl;
+  //LOG(INFO)<<get_name()<<" remove "<<_mac<<" ..."<<endl;
   do {
-    general_context_table_type::iterator itor = m_context_table.begin();
-    for (; itor != m_context_table.end(); itor++) {
-      if (itor->second.m_camera_mac == _mac) {
-        fd = itor->first;
-        LOG(INFO)<<"found fd = "<<fd<<endl;
-      }
-    }
+    general_context_table_type::iterator itor = m_context_table.find(_fd);
     if (itor != m_context_table.end()) {
       m_context_table.erase(itor);
       res = true;
     }
   } while (0);
   do {
-    buffevent_table_type::iterator itor = m_buffevent_table.find(fd);
+    buffevent_table_type::iterator itor = m_buffevent_table.find(_fd);
     if (itor != m_buffevent_table.end()) {
       bufferevent_free(itor->second);
-      LOG(INFO)<<"bufferevent_free for fd = "<<fd<<endl;
+      //LOG(INFO)<<"bufferevent_free for fd = "<<_fd<<endl;
       m_buffevent_table.erase(itor);
     }
   } while (0);

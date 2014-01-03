@@ -21,12 +21,11 @@ public:
   void run();
   void kill();
 
-  void disconnected(const char *_mac);
-
 private:
   message_server_controller();
   ~message_server_controller();
   void add_listen_event(void *_manager, uint32_t _port);
+  void add_timer_event();
 
 private:
   struct event_base *m_event_base;
@@ -35,6 +34,7 @@ private:
 extern void message_accept_cb(evutil_socket_t listener, short event, void *arg);
 extern void message_read_cb(struct bufferevent *bev, void *arg);
 extern void message_error_cb(struct bufferevent *bev, short event, void *arg);
+extern void timer_reached_cb(evutil_socket_t fd, short event, void *arg);
 
 extern void handle_keep_alive_command(void *_manager, struct bufferevent *bev);
 extern void handle_unregcognized_command(void *_manager, struct bufferevent *bev);
