@@ -1,22 +1,27 @@
-CC   = g++ -g
-COMPILE.C  = $(CC) -c 
+CC   = g++
 VPATH   = .
 CXXFLAGS  =  -lgcc_s 
 LDFLAGS = -lglog -lpthread -ldl -lrt
-MAKEEXE   = $(CC)
+MAKEEXE   = $(CC) -g
+AR        = ar cr 
 
-SRC   = $(wildcard *.cpp)
+SRC_ALL = $(wildcard *.cpp)
+SRC   = $(filter-out main.cpp,$(SRC_ALL))
 OBJ   = $(patsubst %.cpp, %.o, $(SRC))
 EXE   = amegia_pnp_server
+LIB   = libamegiapnp.a
 
-all:   $(EXE)
+all:   $(EXE) $(LIB)
 
-$(EXE):   ${OBJ}
+$(EXE):   main.o $(LIB)
 	$(MAKEEXE) $^ $(LDFLAGS) -o $@
 
+$(LIB):   ${OBJ}
+	$(AR) $@ $(OBJ)
+
 %.o:   %.cpp
-	$(COMPILE.C) $< -o $@
+	$(CC) -c $< -o $@
 
 clean:
-	rm -f *.o core $(EXE) 
+	rm -f *.o core $(LIB) $(EXE) 
 
