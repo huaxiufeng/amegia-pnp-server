@@ -2,7 +2,7 @@ CC   = g++ -g
 COMPILE.C  = $(CC) -c 
 VPATH   = .
 CXXFLAGS  =  -lgcc_s 
-LDFLAGS = -lglog -lpthread -levent -ldl -lrt
+LDFLAGS = -lglog -lpthread -ldl -lrt
 MAKEEXE   = $(CC)
 
 SRC   = $(wildcard *.cpp)

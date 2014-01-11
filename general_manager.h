@@ -7,65 +7,101 @@
 #ifndef AMEGIA_PNP_SERVER_GENERAL_MANAGER_H
 #define AMEGIA_PNP_SERVER_GENERAL_MANAGER_H
 
-#include <event2/event.h>
-#include <event2/bufferevent.h>
 #include <sys/time.h>
 #include <pthread.h>
+#include <string>
 #include <map>
+#include <vector>
 #include "buffer_queue.h"
 
 typedef BufferQueue<char> buffer_queue;
 
-class general_context {
+class camera_context {
 public:
-  general_context();
-  general_context(const general_context &ctx);
-  general_context& operator= (const general_context &ctx);
-  ~general_context();
-
+  camera_context(int _account_fd = 0);
+public:
+  // public fields
+  bool m_connected;
   std::string m_conn_ip;
-  uint32_t m_conn_port;
   std::string m_camera_ip;
   std::string m_camera_mac;
-  time_t m_create_time;
-  time_t m_update_time;
-  buffer_queue* m_buffer_queue;
-  // rtsp only
+  pthread_t m_thread_id;
+  // account
+  int m_account_port;
+  int m_account_listen_fd;
+  int m_account_fd;
+  time_t m_account_create_time;
+  time_t m_account_update_time;
+  buffer_queue* m_account_buffer_queue;
+  // control
+  int m_control_port;
+  int m_control_listen_fd;
+  int m_control_fd;
+  time_t m_control_create_time;
+  time_t m_control_update_time;
+  buffer_queue* m_control_buffer_queue;
+  // rtsp
+  int m_rtsp_port;
+  int m_rtsp_listen_fd;
+  int m_rtsp_fd;
+  time_t m_rtsp_create_time;
+  time_t m_rtsp_update_time;
+  buffer_queue* m_rtsp_buffer_queue;
+  unsigned long m_rtsp_frame_count;
+  buffer_queue* m_fragmentation_units;
   int m_video_track_id;
   int m_audio_track_id;
   std::string m_video_track;
   std::string m_audio_track;
   std::string m_stream_session;
   std::string m_stream_range;
+  // snapshot
+  int m_snapshot_port;
+  int m_snapshot_listen_fd;
+  int m_snapshot_fd;
+  time_t m_snapshot_create_time;
+  time_t m_snapshot_update_time;
+  buffer_queue* m_snapshot_buffer_queue;
+  unsigned long m_snapshot_count;
 };
 
-typedef std::map<evutil_socket_t, general_context> general_context_table_type;
-typedef std::map<evutil_socket_t, struct bufferevent*> buffevent_table_type;
-
-class general_manager {
+class context_manager {
 public:
-  bool add(evutil_socket_t _fd, const general_context& _info, struct bufferevent *_bev);
-  general_context* get(evutil_socket_t _fd);
-  bool keep_alive(evutil_socket_t _fd);
-  bool remove(evutil_socket_t _fd);
-  virtual void read_event_callback(struct bufferevent *bev, void *arg);
-  virtual std::string get_name() {return "general";}
-  struct event* get_listen_event() {return m_listen_event;}
-  void set_listen_event(struct event* ev) {m_listen_event = ev;}
-protected:
-  general_manager():m_listen_event(0),m_timer_event(0) {pthread_mutex_init(&m_lock, NULL);}
-  virtual ~general_manager() {pthread_mutex_destroy(&m_lock);}
+  static context_manager* get_instance() {
+    static context_manager instance;
+    return &instance;
+  }
+
+  void add(camera_context &context);
+  camera_context* get(int _fd);
+  size_t get(std::vector<int>& _fd_all);
+  void remove(int _fd);
+  size_t count();
+
+  std::string report();
+
   void lock() {pthread_mutex_lock(&m_lock);}
   void unlock() {pthread_mutex_unlock(&m_lock);}
 
+protected:
+  context_manager() {pthread_mutex_init(&m_lock, NULL);}
+  ~context_manager() {pthread_mutex_destroy(&m_lock);}
+
+protected:
+  std::map<int, camera_context> m_context_table;
   pthread_mutex_t m_lock;
-  general_context_table_type m_context_table;
-  buffevent_table_type m_buffevent_table;
+};
 
-  struct event *m_listen_event;
-  struct event *m_timer_event;
+class general_manager
+{
+public:
+  int handle_accept_connection(void *arg, int _listener = 0, const char *_type = "default");
+  int handle_read_buffer(void *arg);
+  int check_readable(int _sock_fd, long _timeout_usec);
+  int start_listen(int _port, const char *_type = "default");
 
-friend void timer_reached_cb(evutil_socket_t fd, short event, void *arg);
+  void handle_keep_alive_command(buffer_queue* _queue, time_t *_time);
+  void handle_unrecognized_command(buffer_queue* _queue);
 };
 
 #endif // AMEGIA_PNP_SERVER_GENERAL_MANAGER_H

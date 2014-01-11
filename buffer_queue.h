@@ -7,7 +7,7 @@
 #ifndef BUFFER_QUEUE_H
 #define BUFFER_QUEUE_H
 
-#include "gloghelper.h"
+#include <string.h>
 #include <pthread.h>
 
 template<class _TYPE>
@@ -75,7 +75,7 @@ public:
   {
     pthread_mutex_lock(&_lock);
     if (_size+len > _max_size) {
-      _max_size *= 2;
+      _max_size = _size*2+len;
       _TYPE *_new_data = new _TYPE[_max_size];
       memcpy(_new_data, _data, _size);
       delete []_data;

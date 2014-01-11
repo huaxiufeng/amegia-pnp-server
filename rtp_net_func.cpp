@@ -7,6 +7,9 @@
 #include <string.h>
 #include "gloghelper.h"
 #include "rtp_net_func.h"
+#include "buffer_queue.h"
+
+typedef BufferQueue<char> buffer_queue;
 
 typedef struct
 {
@@ -105,13 +108,22 @@ typedef struct
   unsigned char S:1;
 } FU_HEADER;   // 1 BYTES
 
-int rtp_unpackage(const char *buf_in, int len_in, char *buf_out, int len_out)
+int rtp_unpackage(const char *buf_in, int len_in, char *buf_out, int len_out, void *arg)
 {
+  buffer_queue *fu = (buffer_queue*)arg;
+
   int buf_out_index = 0;
   static char start_code[] = {0x00, 0x00, 0x00, 0x01};
-  RTP_FIXED_HEADER *rtp_header = (RTP_FIXED_HEADER*)buf_in;
+  RTP_FIXED_HEADER *rtp_hdr = (RTP_FIXED_HEADER*)buf_in;
   NALU_HEADER *nalu_hdr = (NALU_HEADER*)(buf_in+12);
+  FU_INDICATOR *fu_ind = NULL;
+	FU_HEADER	*fu_hdr= NULL;
 
+  if (len_in <= 14) {
+    LOG(ERROR)<<"buf_in is not valid, only have "<<len_in<<endl;
+    buf_out_index = -1;
+    return buf_out_index;
+  }
   int required_output_size = 4+1+len_in-13;
   if (len_out < required_output_size) {
     LOG(ERROR)<<"buf_out can not hold the unpackaged frame, need at least "<<required_output_size<<", only have "<<len_out<<endl;
@@ -121,12 +133,12 @@ int rtp_unpackage(const char *buf_in, int len_in, char *buf_out, int len_out)
 
   memset(buf_out, 0, len_out);
 
-  //LOG(INFO)<<"version:        "<<(int)rtp_header->version<<endl;
-  //LOG(INFO)<<"marker:         "<<(int)rtp_header->marker<<endl;
-  //LOG(INFO)<<"payload type:   "<<(int)rtp_header->payloadtype<<endl;
-  //LOG(INFO)<<"squence number: "<<rtp_header->seq_no<<endl;
-  //LOG(INFO)<<"timestamp:      "<<rtp_header->timestamp<<endl;
-  //LOG(INFO)<<"SSRC:           "<<rtp_header->ssrc<<endl;
+  //LOG(INFO)<<"version:        "<<(int)rtp_hdr->version<<endl;
+  //LOG(INFO)<<"marker:         "<<(int)rtp_hdr->marker<<endl;
+  //LOG(INFO)<<"payload type:   "<<(int)rtp_hdr->payloadtype<<endl;
+  //LOG(INFO)<<"squence number: "<<rtp_hdr->seq_no<<endl;
+  //LOG(INFO)<<"timestamp:      "<<rtp_hdr->timestamp<<endl;
+  //LOG(INFO)<<"SSRC:           "<<rtp_hdr->ssrc<<endl;
   //LOG(INFO)<<"nalu type:      "<<(int)nalu_hdr->TYPE<<endl;
 
   if (nalu_hdr->TYPE == 0) {
@@ -154,8 +166,32 @@ int rtp_unpackage(const char *buf_in, int len_in, char *buf_out, int len_out)
   if ( nalu_hdr->TYPE == 27) {
     LOG(ERROR)<<"this package is MTAP24, need to be implemented"<<endl;
   } else
-  if ( nalu_hdr->TYPE == 28) {
-    LOG(ERROR)<<"this package is FU-A, need to be implemented"<<endl;
+  if ( nalu_hdr->TYPE == 28 && fu) {
+    //LOG(INFO)<<"this package is FU-A"<<endl;
+    fu_ind = (FU_INDICATOR*)(buf_in+12);
+    fu_hdr = (FU_HEADER*)(buf_in+13);
+    if (rtp_hdr->marker == 1) { // this is the last segment of the fu-a
+      fu->push(buf_in + 14, len_in - 14);
+      required_output_size = fu->size();
+      if (len_out >= required_output_size) {
+        memcpy(buf_out, fu->top(), required_output_size);
+        buf_out_index = required_output_size;
+      } else {
+        LOG(ERROR)<<"buf_out can not hold the unpackaged frame, need at least "<<required_output_size<<", only have "<<len_out<<endl;
+        buf_out_index = -1;
+      }
+      fu->clear();
+    } else
+    if (rtp_hdr->marker == 0) { // this is not the last segment
+      if (fu_hdr->S == 1) {     // this is the first segment
+        fu->clear();
+        fu->push(start_code, 4);
+        char nal_hdr = (fu_ind->F << 7) | (fu_ind->NRI << 5) | (fu_hdr->TYPE);
+        fu->push(&nal_hdr, 1);
+      } else {                  // this is not the first segment
+      }
+      fu->push(buf_in + 14, len_in - 14);
+    }
   } else
   if ( nalu_hdr->TYPE == 29) {
     LOG(ERROR)<<"this package is FU-B, need to be implemented"<<endl;

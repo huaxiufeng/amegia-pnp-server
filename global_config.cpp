@@ -5,15 +5,13 @@
 // Author: Hua Xiufeng
 
 #include "global_config.h"
-#include "amegia_pnp_sdk.h"
 
-char g_local_address[128] = "127.0.0.1";
+char g_local_address[16] = "10.101.10.189";
 int g_account_server_port = 10000;
-int g_control_server_port = 10001;
-int g_rtsp_server_port = 10002;
-int g_snapshot_server_port = 10003;
+int g_http_server_port = 9080;
 
-int g_snapshot_interval = 30;
+int g_snapshot_interval = 10;
+char g_snapshot_directory[512] = "";
 
 fstream_callback g_stream_callback = 0;
 fsnapshot_callback g_snapshot_callback = 0;
