@@ -4,8 +4,7 @@
 //
 // Author: Hua Xiufeng
 
-#include <event2/event.h>
-#include <event2/bufferevent.h>
+#include <stdio.h>
 #include <string.h>
 #include "gloghelper.h"
 #include "rtsp_net_func.h"
@@ -28,7 +27,7 @@ const char* find_value(const char *needle, const char *buf, char *result)
   return res;
 }
 
-int rtsp_write(evutil_socket_t fd, const char *method, const char *url, const char *msg, int seq)
+int rtsp_write(int fd, const char *method, const char *url, const char *msg, int seq)
 {
   int ret = 0;
   char buf[1024];
@@ -46,7 +45,7 @@ int rtsp_write(evutil_socket_t fd, const char *method, const char *url, const ch
   return ret;
 }
 
-int rtsp_read(evutil_socket_t fd, char *buf, int size)
+int rtsp_read(int fd, char *buf, int size)
 {
   int  ret = 0;
   ret = read(fd, buf, size);

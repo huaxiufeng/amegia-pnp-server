@@ -9,17 +9,16 @@
 
 #include "amegia_pnp_sdk.h"
 
-#define MAX_BUFF_SIZE          8192
+#define MAX_BUFF_SIZE          1024
 #define MAX_VIDEO_FRAME_SIZE   65536
 #define MAX_SNAPSHOT_SIZE      1048576
 
-extern char g_local_address[128];
+extern char g_local_address[16];
 extern int g_account_server_port;
-extern int g_control_server_port;
-extern int g_rtsp_server_port;
-extern int g_snapshot_server_port;
+extern int g_http_server_port;
 
 extern int g_snapshot_interval;
+extern char g_snapshot_directory[512];
 
 extern fstream_callback g_stream_callback;
 extern fsnapshot_callback g_snapshot_callback;

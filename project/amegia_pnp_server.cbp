@@ -43,14 +43,12 @@
 		<Unit filename="../general_manager.h" />
 		<Unit filename="../global_config.cpp" />
 		<Unit filename="../global_config.h" />
-		<Unit filename="../global_net_func.cpp" />
-		<Unit filename="../global_net_func.h" />
 		<Unit filename="../gloghelper.cpp" />
 		<Unit filename="../gloghelper.h" />
 		<Unit filename="../main.cpp" />
-		<Unit filename="../message_server_controller.cpp" />
-		<Unit filename="../message_server_controller.h" />
 		<Unit filename="../message_types.h" />
+		<Unit filename="../mongoose.cpp" />
+		<Unit filename="../mongoose.h" />
 		<Unit filename="../rtp_net_func.cpp" />
 		<Unit filename="../rtp_net_func.h" />
 		<Unit filename="../rtsp_manager.cpp" />

@@ -15,8 +15,12 @@ public:
     static snapshot_manager instance;
     return &instance;
   }
-  std::string get_name() {return "snapshot";}
-  void read_event_callback(struct bufferevent *bev, void *arg);
+
+  int handle_accept_connection(void *arg, int listener = 0, const char *_type = "snapshot");
+  int handle_read_buffer(void *arg);
+
+  void create_directory(const char *_dir);
+  std::string generate_name(const char *_mac);
 };
 
 #endif // AMEGIA_PNP_SERVER_SNAPSHOT_MANAGER_H

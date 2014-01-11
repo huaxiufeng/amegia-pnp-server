@@ -7,13 +7,7 @@
 #ifndef AMEGIA_PNP_SERVER_ACCOUNT_MANAGER_H
 #define AMEGIA_PNP_SERVER_ACCOUNT_MANAGER_H
 
-#include <event2/event.h>
-#include <event2/bufferevent.h>
-#include <sys/time.h>
-#include <pthread.h>
-#include <string>
-#include <map>
-
+#include "mongoose.h"
 #include "general_manager.h"
 
 class account_manager: public general_manager {
@@ -22,8 +16,22 @@ public:
     static account_manager instance;
     return &instance;
   }
-  std::string get_name() {return "account";}
-  void read_event_callback(struct bufferevent *bev, void *arg);
+
+  void run();
+  void kill();
+
+  int handle_accept_connection(void *arg, int listener = 0, const char *_type = "control");
+  int handle_read_buffer(void *arg);
+
+protected:
+  static void* start_account_service(void *arg);
+  static void* start_camera_service(void *arg);
+  static int http_callback(struct mg_event *event);
+  account_manager():m_account_listen_fd(0),m_keep_running(true){}
+  int m_account_listen_fd;
+  bool m_keep_running;
+  pthread_t m_account_thread_id;
+  mg_context *m_http_context;
 };
 
 #endif // AMEGIA_PNP_SERVER_ACCOUNT_MANAGER_H
