@@ -15,6 +15,7 @@
 #include "control_manager.h"
 #include "rtsp_manager.h"
 #include "snapshot_manager.h"
+#include "simple_echo_server.h"
 using namespace std;
 
 static void handle_get_controlserver_command(camera_context *context)
@@ -50,25 +51,10 @@ static void handle_get_controlserver_command(camera_context *context)
   write(context->m_account_fd, send_buffer, send_len);
 }
 
-int account_manager::http_callback(struct mg_event *event)
-{
-  if (event->type == MG_REQUEST_BEGIN) {
-    string report = context_manager::get_instance()->report();
-    mg_printf(event->conn,
-        "HTTP/1.1 200 OK\r\n"
-        "Content-Type: text/plain\r\n"
-        "Content-Length: %d\r\n"
-        "\r\n"
-        "%s",
-        report.length()+1, report.c_str());
-    return 1;
-  }
-  return 0;
-}
-
 void* account_manager::start_account_service(void *arg)
 {
   account_manager *manager = account_manager::get_instance();
+
   manager->m_account_listen_fd = manager->start_listen(g_account_server_port, "account");
   while (manager->m_keep_running) {
     manager->handle_accept_connection(0, manager->m_account_listen_fd, "account");
@@ -78,16 +64,13 @@ void* account_manager::start_account_service(void *arg)
 
 void account_manager::run()
 {
-  char http_port[32];
-  snprintf(http_port, sizeof(http_port), "%d", g_http_server_port);
-  const char *options[] = {"listening_ports", http_port, "num_threads", "2", NULL};
-  m_http_context = mg_start(options, http_callback, NULL);
+  start_echo_server();
   pthread_create(&m_account_thread_id, 0, start_account_service, NULL);
 }
 
 void account_manager::kill()
 {
-  mg_stop(m_http_context);
+  stop_echo_server();
   close(m_account_listen_fd);
   m_keep_running = false;
   pthread_join(m_account_thread_id, NULL);
@@ -177,7 +160,7 @@ void* account_manager::start_camera_service(void *arg)
     if (time(NULL) - last_check_time > 10) {
       last_check_time = time(NULL);
       camera_context *ctx = (camera_context*)arg;
-      LOG(INFO)<<"timer checking ["<<ctx->m_conn_ip<<"-"<<ctx->m_camera_mac<<"] now:"<<time(NULL)<<" rtsp:"<<ctx->m_rtsp_update_time<<" snap:"<<ctx->m_snapshot_update_time<<endl;
+      //LOG(INFO)<<"timer checking ["<<ctx->m_conn_ip<<"-"<<ctx->m_camera_mac<<"] now:"<<time(NULL)<<" rtsp:"<<ctx->m_rtsp_update_time<<" snap:"<<ctx->m_snapshot_update_time<<endl;
       if ((g_stream_callback && time(NULL) - ctx->m_rtsp_update_time > 60) &&
           (g_snapshot_callback && time(NULL) - ctx->m_snapshot_update_time > 60))
       {

@@ -47,14 +47,15 @@
 		<Unit filename="../gloghelper.h" />
 		<Unit filename="../main.cpp" />
 		<Unit filename="../message_types.h" />
-		<Unit filename="../mongoose.cpp" />
-		<Unit filename="../mongoose.h" />
 		<Unit filename="../rtp_net_func.cpp" />
 		<Unit filename="../rtp_net_func.h" />
 		<Unit filename="../rtsp_manager.cpp" />
 		<Unit filename="../rtsp_manager.h" />
 		<Unit filename="../rtsp_net_func.cpp" />
 		<Unit filename="../rtsp_net_func.h" />
+		<Unit filename="../simple_echo_server.cpp" />
+		<Unit filename="../simple_echo_server.h" />
+		<Unit filename="../simple_http_server.h" />
 		<Unit filename="../snapshot_manager.cpp" />
 		<Unit filename="../snapshot_manager.h" />
 		<Extensions>

@@ -4,6 +4,7 @@
 //
 // Author: Hua Xiufeng
 
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include "global_config.h"

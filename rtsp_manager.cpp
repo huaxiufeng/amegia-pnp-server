@@ -33,10 +33,10 @@ static void handle_connect_rtsp_command(camera_context *context)
   int fd = context->m_rtsp_fd;
 
   if (0 == rtsp_cseq) {
-    rtsp_write(fd, "OPTIONS", "rtsp://10.101.10.189/v05", NULL, rtsp_cseq+1);
+    rtsp_write(fd, "OPTIONS", "rtsp://10.101.10.189/v03", NULL, rtsp_cseq+1);
   }
   if (1 == rtsp_cseq) {
-    rtsp_write(fd, "DESCRIBE", "rtsp://10.101.10.189/v05", "Accept: application/sdp\r\n", rtsp_cseq+1);
+    rtsp_write(fd, "DESCRIBE", "rtsp://10.101.10.189/v03", "Accept: application/sdp\r\n", rtsp_cseq+1);
   }
   if (2 == rtsp_cseq && strstr(data+header_size, "a=control")) {
     char result[256] = {0};
@@ -72,7 +72,7 @@ static void handle_connect_rtsp_command(camera_context *context)
     }
     if (context->m_stream_session.length() > 0 && context->m_stream_range.length() > 0) {
       snprintf(result, sizeof(result), "Session:%s\r\nRange:%s\r\n", context->m_stream_session.c_str(), context->m_stream_range.c_str());
-      rtsp_write(fd, "PLAY", "rtsp://10.101.10.189/v05", result, rtsp_cseq+1);
+      rtsp_write(fd, "PLAY", "rtsp://10.101.10.189/v03", result, rtsp_cseq+1);
     }
   }
   if (4 == rtsp_cseq) {

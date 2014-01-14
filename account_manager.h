@@ -7,7 +7,6 @@
 #ifndef AMEGIA_PNP_SERVER_ACCOUNT_MANAGER_H
 #define AMEGIA_PNP_SERVER_ACCOUNT_MANAGER_H
 
-#include "mongoose.h"
 #include "general_manager.h"
 
 class account_manager: public general_manager {
@@ -26,12 +25,10 @@ public:
 protected:
   static void* start_account_service(void *arg);
   static void* start_camera_service(void *arg);
-  static int http_callback(struct mg_event *event);
   account_manager():m_account_listen_fd(0),m_keep_running(true){}
   int m_account_listen_fd;
   bool m_keep_running;
   pthread_t m_account_thread_id;
-  mg_context *m_http_context;
 };
 
 #endif // AMEGIA_PNP_SERVER_ACCOUNT_MANAGER_H
