@@ -57,7 +57,7 @@ static void handle_set_snapshot_command(camera_context *context)
         }
       }
       if (response->index > last_index + 10) {
-        LOG(INFO)<<"index error happens at index "<<index<<", clear the old one"<<endl;
+        //LOG(INFO)<<"index error happens at index "<<index<<", clear the old one"<<endl;
         context->m_snapshot_buffer_queue->pop(NULL, index);
         break;
       }
@@ -67,7 +67,7 @@ static void handle_set_snapshot_command(camera_context *context)
       end_flag = response->endflag;
       //LOG(INFO)<<"index:"<<(int)response->index<<" end:"<<(int)response->endflag<<" ["<<current_snapshot_size<<"/"<<(int)response->total<<"]"<<endl;
       if (current_snapshot_size >= total_snapshot_size || end_flag) {
-        //LOG(INFO)<<"["<<context->m_conn_ip<<" - "<<context->m_camera_mac<<" --> localhost.fd="<<context->m_snapshot_fd<<"]"<<" get snapshot "<<current_snapshot_size<<" bytes, total "<<total_snapshot_size<<endl;
+        LOG(INFO)<<"["<<context->m_conn_ip<<" - "<<context->m_camera_mac<<" --> localhost.fd="<<context->m_snapshot_fd<<"]"<<" get snapshot "<<current_snapshot_size<<" bytes, total "<<total_snapshot_size<<endl;
         break;
       }
       last_index = index;

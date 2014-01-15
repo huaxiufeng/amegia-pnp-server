@@ -122,8 +122,16 @@ typedef struct
   unsigned short count;		// how much bytes in this package
   char result[0];			// The first memory address of the parameter in this package
 } IoctlMsgGetParameterReq, IoctlMsgGetParameterResp,
-IoctlMsgSetParameterReq, IoctlMsgSetParameterResp,
-IoctlMsgSetSnapshotReq, IoctlMsgSetSnapshotResp,
+IoctlMsgSetParameterReq, IoctlMsgSetParameterResp;
+
+typedef struct
+{
+  unsigned int  total;    // Total bytes
+  unsigned int  index;    // package index, 0,1,2...;
+  unsigned char endflag;  // end flag; endFlag = 1 means this package is the last one.
+  unsigned short count;   // how much bytes in this package
+  char result[0];     // The first memory address of the parameter in this package
+} IoctlMsgSetSnapshotReq, IoctlMsgSetSnapshotResp,
 IoctlMsgGetSnapshotReq, IoctlMsgGetSnapshotResp;
 
 #endif // AMEGIA_PNP_SERVER_MESSAGE_TYPES_H
