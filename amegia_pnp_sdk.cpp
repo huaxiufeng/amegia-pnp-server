@@ -16,8 +16,14 @@ amegia_pnp_context::amegia_pnp_context()
   account_service_port = 10000;
   http_service_port = 9080;
   snapshot_interval = 300;
+  snapshot_keep_days = 7;
+  snapshot_begin_hour = 00;
+  snapshot_begin_minute = 00;
+  snapshot_end_hour = 24;
+  snapshot_end_minute = 00;
   memset(local_ip_address, 0, sizeof(local_ip_address));
   memset(snapshot_directory, 0, sizeof(snapshot_directory));
+  strcpy(snapshot_directory, "snapshot_file");
 }
 
 static void set_configuration(const amegia_pnp_context *config)
@@ -27,6 +33,11 @@ static void set_configuration(const amegia_pnp_context *config)
   g_account_server_port = config->account_service_port;
   g_snapshot_interval = config->snapshot_interval;
   g_http_server_port = config->http_service_port;
+  g_snapshot_keep_days = config->snapshot_keep_days;
+  g_snapshot_begin_hour = config->snapshot_begin_hour;
+  g_snapshot_begin_minute = config->snapshot_begin_minute;
+  g_snapshot_end_hour = config->snapshot_end_hour;
+  g_snapshot_end_minute = config->snapshot_end_minute;
 
   char current_path[512];
   getcwd(current_path, sizeof(current_path)-1);

@@ -58,6 +58,10 @@ void* account_manager::start_account_service(void *arg)
   manager->m_account_listen_fd = manager->start_listen(g_account_server_port, "account");
   while (manager->m_keep_running) {
     manager->handle_accept_connection(0, manager->m_account_listen_fd, "account");
+    if (time(NULL) % 3600 == 0) {
+      snapshot_manager::get_instance()->check_expired(g_snapshot_directory);
+      sleep(1);
+    }
   }
   LOG(INFO)<<"exit start_account_service"<<endl;
 }

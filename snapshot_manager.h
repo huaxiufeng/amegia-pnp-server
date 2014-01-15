@@ -21,6 +21,7 @@ public:
 
   void create_directory(const char *_dir);
   std::string generate_name(const char *_mac);
+  void check_expired(const char *_dir);
 };
 
 #endif // AMEGIA_PNP_SERVER_SNAPSHOT_MANAGER_H

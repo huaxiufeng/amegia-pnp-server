@@ -11,10 +11,15 @@ class amegia_pnp_context {
 public:
   amegia_pnp_context();
   char local_ip_address[16];
-  int account_service_port;
-  int http_service_port;
-  int snapshot_interval;
-  char snapshot_directory[512];
+  int account_service_port;        // default 10000
+  int http_service_port;           // default 9080
+  int snapshot_interval;           // default 300 seconds
+  char snapshot_directory[512];    // default "./snapshot_file"
+  int snapshot_keep_days;          // default 7
+  int snapshot_begin_hour;         // default 00
+  int snapshot_begin_minute;       // default 00
+  int snapshot_end_hour;           // default 24
+  int snapshot_end_minute;         // default 00
 };
 
 typedef void (*fstream_callback)(const char *_ip, const char *_mac, const unsigned char *_frame_buffer, int _frame_buffer_size);

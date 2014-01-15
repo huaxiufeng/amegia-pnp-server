@@ -19,6 +19,11 @@ extern int g_http_server_port;
 
 extern int g_snapshot_interval;
 extern char g_snapshot_directory[512];
+extern int g_snapshot_keep_days;
+extern int g_snapshot_begin_hour;
+extern int g_snapshot_begin_minute;
+extern int g_snapshot_end_hour;
+extern int g_snapshot_end_minute;
 
 extern fstream_callback g_stream_callback;
 extern fsnapshot_callback g_snapshot_callback;

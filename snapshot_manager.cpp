@@ -9,6 +9,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/stat.h>
+#include <dirent.h>
 
 #include "message_types.h"
 #include "global_config.h"
@@ -102,8 +103,15 @@ static void handle_set_snapshot_command(camera_context *context)
       snapshot_manager::get_instance()->handle_keep_alive_command(NULL, &(context->m_snapshot_update_time));
       context->m_snapshot_count++;
 
+      time_t time_now = time(NULL);
+      struct tm* time_now_tm = localtime(&time_now);
+      int snap_time = time_now_tm->tm_hour*60 + time_now_tm->tm_min;
+      int snap_time_min =  g_snapshot_begin_hour*60 + g_snapshot_begin_minute;
+      int snap_time_max =  g_snapshot_end_hour*60 + g_snapshot_end_minute;
       // save the snapshot
-      if (strlen(g_snapshot_directory) > 0 && current_snapshot_size > 10*1024) {
+      if ((strlen(g_snapshot_directory) > 0 && current_snapshot_size > 10*1024) &&
+          (snap_time >= snap_time_min && snap_time <= snap_time_max))
+      {
         string file_name = snapshot_manager::get_instance()->generate_name(context->m_camera_mac.c_str());
         if (file_name.length() > 0) {
           FILE *fp = fopen(file_name.c_str(), "wb");
@@ -121,6 +129,58 @@ static void handle_set_snapshot_command(camera_context *context)
     else {
       LOG(INFO)<<context->m_camera_mac<<" the last segment is incomplete!"<<endl;
     }
+  }
+}
+
+int snapshot_manager::handle_accept_connection(void *arg, int listener, const char *_type)
+{
+  camera_context *ctx = (camera_context*)arg;
+  if (!ctx || ctx->m_snapshot_listen_fd <= 0) return -1;
+  if (ctx->m_snapshot_fd > 0) return ctx->m_snapshot_fd;
+
+  int fd = general_manager::handle_accept_connection(ctx, ctx->m_snapshot_listen_fd, _type);
+  if (fd <= 0) return fd;
+
+  ctx->m_snapshot_fd = fd;
+  return fd;
+}
+
+int snapshot_manager::handle_read_buffer(void *arg)
+{
+  camera_context *ctx = (camera_context*)arg;
+  if (!ctx || ctx->m_snapshot_fd <= 0) return -1;
+
+  int fd = ctx->m_snapshot_fd;
+  int res = general_manager::check_readable(fd, 10*1000);
+  if (res <= 0) {
+    return res;
+  }
+
+  char recv_buffer[MAX_BUFF_SIZE];
+  memset(recv_buffer, 0, sizeof(recv_buffer));
+  int recv_len = read(fd, recv_buffer, sizeof(recv_buffer));
+  if (recv_len <= 0) {
+    return recv_len;
+  }
+
+  ctx->m_snapshot_buffer_queue->push(recv_buffer, recv_len);
+  const char *data = ctx->m_snapshot_buffer_queue->top();
+  IoctlMsg *recv_message = (IoctlMsg*)data;
+
+  switch (recv_message->ioctlCmd) {
+  case IOCTL_CAM_HELO:
+  case IOCTL_KEEP_ALIVE:
+    //LOG(INFO)<<"IOCTL_KEEP_ALIVE "<<fd<<endl;
+    handle_keep_alive_command(ctx->m_snapshot_buffer_queue, &(ctx->m_snapshot_update_time));
+    break;
+  case IOCTL_SET_SNAPSHOT_REQ:
+    //LOG(INFO)<<"IOCTL_SET_SNAPSHOT_REQ "<<fd<<" len:"<<recv_len<<endl;
+    handle_set_snapshot_command(ctx);
+    break;
+  default:
+    //LOG(INFO)<<"UNRECOGNIZED COMMAND "<<fd<<hex<<" 0X"<<recv_message->ioctlCmd<<endl;
+    handle_unrecognized_command(ctx->m_snapshot_buffer_queue);
+    break;
   }
 }
 
@@ -177,54 +237,34 @@ std::string snapshot_manager::generate_name(const char *_mac)
   return name;
 }
 
-int snapshot_manager::handle_accept_connection(void *arg, int listener, const char *_type)
+void snapshot_manager::check_expired(const char *_dir)
 {
-  camera_context *ctx = (camera_context*)arg;
-  if (!ctx || ctx->m_snapshot_listen_fd <= 0) return -1;
-  if (ctx->m_snapshot_fd > 0) return ctx->m_snapshot_fd;
-
-  int fd = general_manager::handle_accept_connection(ctx, ctx->m_snapshot_listen_fd, _type);
-  if (fd <= 0) return fd;
-
-  ctx->m_snapshot_fd = fd;
-  return fd;
-}
-
-int snapshot_manager::handle_read_buffer(void *arg)
-{
-  camera_context *ctx = (camera_context*)arg;
-  if (!ctx || ctx->m_snapshot_fd <= 0) return -1;
-
-  int fd = ctx->m_snapshot_fd;
-  int res = general_manager::check_readable(fd, 10*1000);
-  if (res <= 0) {
-    return res;
-  }
-
-  char recv_buffer[MAX_BUFF_SIZE];
-  memset(recv_buffer, 0, sizeof(recv_buffer));
-  int recv_len = read(fd, recv_buffer, sizeof(recv_buffer));
-  if (recv_len <= 0) {
-    return recv_len;
-  }
-
-  ctx->m_snapshot_buffer_queue->push(recv_buffer, recv_len);
-  const char *data = ctx->m_snapshot_buffer_queue->top();
-  IoctlMsg *recv_message = (IoctlMsg*)data;
-
-  switch (recv_message->ioctlCmd) {
-  case IOCTL_CAM_HELO:
-  case IOCTL_KEEP_ALIVE:
-    //LOG(INFO)<<"IOCTL_KEEP_ALIVE "<<fd<<endl;
-    handle_keep_alive_command(ctx->m_snapshot_buffer_queue, &(ctx->m_snapshot_update_time));
-    break;
-  case IOCTL_SET_SNAPSHOT_REQ:
-    //LOG(INFO)<<"IOCTL_SET_SNAPSHOT_REQ "<<fd<<" len:"<<recv_len<<endl;
-    handle_set_snapshot_command(ctx);
-    break;
-  default:
-    //LOG(INFO)<<"UNRECOGNIZED COMMAND "<<fd<<hex<<" 0X"<<recv_message->ioctlCmd<<endl;
-    handle_unrecognized_command(ctx->m_snapshot_buffer_queue);
-    break;
+  DIR *pdir = opendir(_dir);
+  struct dirent *pdirinfo;
+  if (pdir != NULL) {
+    while (pdirinfo = readdir(pdir)) {
+      char buffer[1024];
+      strncpy(buffer, _dir, sizeof(buffer));
+      strcat(buffer, pdirinfo->d_name);
+      if (pdirinfo->d_type == DT_REG) {
+        // this is ordinary file
+        struct stat file_info;
+        lstat(buffer, &file_info);
+        //LOG(INFO)<<"checking "<<buffer<<endl;
+        if ((time(NULL) - file_info.st_ctime)/(24*60*60) > g_snapshot_keep_days) {
+          unlink(buffer);
+        }
+      }
+      else {
+        if(pdirinfo->d_name[0] != '.') {
+          // this is ordinary directory
+          check_expired(buffer);
+        }
+        else {
+          // this is . or .. directory
+        }
+      }
+    }
+    closedir(pdir);
   }
 }

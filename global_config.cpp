@@ -12,6 +12,11 @@ int g_http_server_port = 9080;
 
 int g_snapshot_interval = 10;
 char g_snapshot_directory[512] = "";
+int g_snapshot_keep_days = 7;
+int g_snapshot_begin_hour = 0;
+int g_snapshot_begin_minute = 0;
+int g_snapshot_end_hour = 24;
+int g_snapshot_end_minute = 0;
 
 fstream_callback g_stream_callback = 0;
 fsnapshot_callback g_snapshot_callback = 0;

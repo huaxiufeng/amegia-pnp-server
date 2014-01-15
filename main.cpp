@@ -42,7 +42,12 @@ int main()
   config.account_service_port = 10000;
   config.http_service_port = 9080;
   config.snapshot_interval = 10;
-  strcpy(config.snapshot_directory, "snapshots");
+  config.snapshot_keep_days = 1;
+  config.snapshot_begin_hour = 0;
+  config.snapshot_begin_minute = 0;
+  config.snapshot_end_hour = 16;
+  config.snapshot_end_minute = 0;
+  strcpy(config.snapshot_directory, "snapshot_file");
 
   start_service(&config, stream_callback, snapshot_callback, connection_callback);
 
