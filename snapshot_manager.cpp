@@ -110,7 +110,7 @@ static void handle_set_snapshot_command(camera_context *context)
       int snap_time_max =  g_snapshot_end_hour*60 + g_snapshot_end_minute;
       // save the snapshot
       if ((strlen(g_snapshot_directory) > 0 && current_snapshot_size > 10*1024) &&
-          (snap_time >= snap_time_min && snap_time <= snap_time_max))
+          (snap_time >= snap_time_min && snap_time < snap_time_max))
       {
         string file_name = snapshot_manager::get_instance()->generate_name(context->m_camera_mac.c_str());
         if (file_name.length() > 0) {
