@@ -9,9 +9,9 @@
 #include "gloghelper.h"
 #include "amegia_pnp_sdk.h"
 
-void stream_callback(const char *_ip, const char *_mac, const unsigned char *_frame_buffer, int _frame_buffer_size)
+void stream_callback(const char *_ip, const char *_mac, const unsigned char *_frame_buffer, int _frame_buffer_size, double _frame_rate)
 {
-  //LOG(INFO)<<"["<<_mac<<"-"<<_ip<<"] get rtsp frame "<<_frame_buffer_size<<" bytes"<<endl;
+  LOG(INFO)<<"["<<_mac<<"-"<<_ip<<"] get rtsp frame "<<_frame_buffer_size<<" bytes, frame rate: "<<_frame_rate<<endl;
   //FILE *fp = fopen("video.h264", "ab");
   //fwrite(_frame_buffer, _frame_buffer_size, 1, fp);
   //fclose(fp);
@@ -41,7 +41,7 @@ int main()
   strcpy(config.local_ip_address, "10.101.10.189");
   config.account_service_port = 10000;
   config.http_service_port = 9080;
-  config.snapshot_interval = 10;
+  config.snapshot_interval = 60;
   config.snapshot_keep_days = 1;
   config.snapshot_begin_hour = 0;
   config.snapshot_begin_minute = 0;

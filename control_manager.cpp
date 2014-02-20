@@ -95,6 +95,11 @@ static void handle_get_parameter_response(camera_context *context)
       context->m_camera_mac = mac;
       LOG(INFO)<<"get mac "<<mac<<endl;
     }
+    // we only want stream v03, the corresponding profile is profile_2
+    if (pstr = strstr(parameter, "profile_2.framerate")) {
+      sscanf(pstr, "profile_2.framerate=%lf;", &context->m_rtsp_profile_frame_rate);
+      LOG(INFO)<<"get frame rate from profile "<<context->m_rtsp_profile_frame_rate<<endl;
+    }
     context->m_control_buffer_queue->clear();
 
     handle_set_rtspserver_command(context);

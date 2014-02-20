@@ -38,6 +38,7 @@ camera_context::camera_context(int _account_fd)
   m_rtsp_update_time = time(NULL);
   m_rtsp_buffer_queue = NULL;
   m_rtsp_frame_count = 0;
+  m_rtsp_profile_frame_rate = 25.0;
   m_fragmentation_units = NULL;
 
   m_snapshot_port = 0;

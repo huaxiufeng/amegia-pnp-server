@@ -48,6 +48,7 @@ public:
   time_t m_rtsp_update_time;
   buffer_queue* m_rtsp_buffer_queue;
   unsigned long m_rtsp_frame_count;
+  double m_rtsp_profile_frame_rate;
   buffer_queue* m_fragmentation_units;
   int m_video_track_id;
   int m_audio_track_id;

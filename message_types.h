@@ -127,7 +127,7 @@ IoctlMsgSetParameterReq, IoctlMsgSetParameterResp;
 typedef struct
 {
   unsigned int  total;    // Total bytes
-  unsigned int  index;    // package index, 0,1,2...;
+  unsigned char index;    // package index, 0,1,2...;
   unsigned char endflag;  // end flag; endFlag = 1 means this package is the last one.
   unsigned short count;   // how much bytes in this package
   char result[0];     // The first memory address of the parameter in this package

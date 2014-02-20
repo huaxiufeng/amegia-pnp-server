@@ -115,7 +115,7 @@ static void handle_rtp_stream_response(camera_context *context)
     //LOG(INFO)<<"rtp_unpackage get "<<frame_size<<" bytes"<<endl;
     context->m_rtsp_frame_count++;
     if (g_stream_callback && frame_size > 0) {
-      (*g_stream_callback)(context->m_conn_ip.c_str(), context->m_camera_mac.c_str(), (const unsigned char*)frame_buffer, frame_size);
+      (*g_stream_callback)(context->m_conn_ip.c_str(), context->m_camera_mac.c_str(), (const unsigned char*)frame_buffer, frame_size, context->m_rtsp_profile_frame_rate);
     }
   } while (true);
 }

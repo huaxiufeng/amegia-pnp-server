@@ -55,7 +55,6 @@
 		<Unit filename="../rtsp_net_func.h" />
 		<Unit filename="../simple_echo_server.cpp" />
 		<Unit filename="../simple_echo_server.h" />
-		<Unit filename="../simple_http_server.h" />
 		<Unit filename="../snapshot_manager.cpp" />
 		<Unit filename="../snapshot_manager.h" />
 		<Extensions>

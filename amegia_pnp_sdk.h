@@ -22,7 +22,7 @@ public:
   int snapshot_end_minute;         // default 00
 };
 
-typedef void (*fstream_callback)(const char *_ip, const char *_mac, const unsigned char *_frame_buffer, int _frame_buffer_size);
+typedef void (*fstream_callback)(const char *_ip, const char *_mac, const unsigned char *_frame_buffer, int _frame_buffer_size, double _frame_rate);
 typedef void (*fsnapshot_callback)(const char *_ip, const char *_mac, const unsigned char *_snapshot_buffer, int _snapshot_buffer_size);
 typedef void (*fconnection_callback)(const char *_ip, const char *_mac, int _fd, bool _connected);
 
